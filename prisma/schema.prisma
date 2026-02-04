@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlatformType {
+  LINKEDIN
+  FACEBOOK
+}
+
+model User {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // For MVP: cookie-based anonymous identity.
+  // Unique, stable per visitor (not PII).
+  anonKey   String   @unique
+
+  maps      Map[]
+}
+
+model Map {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+
+  nodes     Node[]
+  edges     Edge[]
+}
+
+model Node {
+  id         String   @id // React Flow node id (stable client-side)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  mapId      String
+  map        Map      @relation(fields: [mapId], references: [id], onDelete: Cascade)
+
+  type       String?
+  positionX  Float
+  positionY  Float
+  data       Json
+
+  generated  GeneratedContent[]
+
+  @@index([mapId])
+}
+
+model Edge {
+  id         String   @id // React Flow edge id (stable client-side)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  mapId      String
+  map        Map      @relation(fields: [mapId], references: [id], onDelete: Cascade)
+
+  source     String
+  target     String
+  type       String?
+  data       Json?
+
+  @@index([mapId])
+  @@index([source])
+  @@index([target])
+}
+
+model GeneratedContent {
+  id           String       @id @default(cuid())
+  createdAt    DateTime     @default(now())
+
+  nodeId       String
+  node         Node         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  platform     PlatformType
+  model        String
+  prompt       String
+  output       String
+
+  // Determinism / regeneration tracking
+  temperature  Float?
+  seed         Int?
+  revision     Int          @default(1)
+
+  @@index([nodeId, platform])
+}
+
+
+

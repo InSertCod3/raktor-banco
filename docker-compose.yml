@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16 # Use a specific, stable version of the Postgres image
+    restart: always # Ensure the container restarts automatically if it stops
+    environment:
+      POSTGRES_PASSWORD: mysecretpassword # Required password for the postgres user
+      POSTGRES_USER: myuser # Optional: creates a specified user (default is 'postgres')
+      POSTGRES_DB: banco # Optional: creates a specific database on startup
+    ports:
+      - "5432:5432" # Map the container's port 5432 to the host machine's port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Mount a named volume for data persistence
+
+volumes:
+  postgres_data: # Define the named volume
