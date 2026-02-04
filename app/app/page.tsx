@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { prisma } from '@/app/lib/db';
 import { getCurrentUserId } from '@/app/lib/currentUser';
 import BackgroundGrid from '@/app/components/BackgroundGrid';
+import MapListClient from './ui/MapListClient';
 
 export default async function MindAppHome({
   searchParams,
@@ -11,18 +12,23 @@ export default async function MindAppHome({
   const sp = await searchParams;
   const createFailed = sp.error === 'create_failed';
 
-  let maps: { id: string; title: string; updatedAt: Date }[] = [];
+  let maps: { id: string; title: string; updatedAt: string }[] = [];
   let dbError: string | null = null;
 
   try {
     const userId = await getCurrentUserId();
     if (userId) {
-      maps = await prisma.map.findMany({
+      const dbMaps = await prisma.map.findMany({
         where: { userId },
         orderBy: { updatedAt: 'desc' },
         select: { id: true, title: true, updatedAt: true },
         take: 50,
       });
+      
+      maps = dbMaps.map(m => ({
+        ...m,
+        updatedAt: m.updatedAt.toISOString()
+      }));
     }
     // If no userId (no cookie yet), maps stays empty - that's fine, user will get cookie on first API call
   } catch (err) {
@@ -85,42 +91,7 @@ export default async function MindAppHome({
             </div>
           </div>
         ) : (
-          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Link
-              href="/app/new"
-              className="group rounded-2xl border border-dashed border-primary/40 bg-white/80 p-6 shadow-1 backdrop-blur transition hover:border-primary hover:bg-white"
-            >
-              <div className="text-sm font-semibold text-dark">Start a new map</div>
-              <p className="mt-2 text-sm text-body-color">
-                Create a central idea, branch out, and generate posts node-by-node.
-              </p>
-              <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                Create map <span className="transition group-hover:translate-x-0.5">→</span>
-              </div>
-            </Link>
-
-            {maps.map((m) => (
-              <Link
-                key={m.id}
-                href={`/app/${m.id}`}
-                className="rounded-2xl border border-stroke bg-white/80 p-6 shadow-1 backdrop-blur transition hover:border-primary hover:bg-white"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-dark">{m.title}</div>
-                    <div className="mt-2 text-xs text-body-color">
-                      Updated {m.updatedAt.toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="text-xs font-semibold text-primary">Open</div>
-                </div>
-
-                <div className="mt-5 h-20 rounded-xl border border-stroke bg-gray-1">
-                  <div className="h-full w-full rounded-xl bg-[radial-gradient(circle_at_20%_30%,rgba(55,88,249,0.15),transparent_60%),radial-gradient(circle_at_70%_70%,rgba(19,194,150,0.14),transparent_55%)]" />
-                </div>
-              </Link>
-            ))}
-          </div>
+          <MapListClient initialMaps={maps} />
         )}
       </div>
     </main>

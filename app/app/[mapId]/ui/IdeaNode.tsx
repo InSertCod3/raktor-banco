@@ -1,8 +1,9 @@
 'use client';
 
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import React from 'react';
+import React, { useState } from 'react';
 import { useMindMap, type Generation, type Platform } from './MindMapContext';
+import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 
 export type IdeaNodeType = Node<{ text?: string }, 'idea'>;
 
@@ -18,6 +19,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [items, setItems] = React.useState<Generation[]>([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
 
@@ -45,6 +47,11 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
     }
   }
 
+  const handleDelete = () => {
+    mindmap.deleteNode(id);
+    setIsDeleteModalOpen(false);
+  };
+
   React.useEffect(() => {
     if (!showOutput) return;
     refresh();
@@ -67,11 +74,20 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
         <button
           type="button"
           className="nodrag rounded-md bg-gray-2 px-2 py-1 text-[11px] text-dark hover:bg-gray-2/70"
-          onClick={() => mindmap.deleteNode(id)}
+          onClick={() => setIsDeleteModalOpen(true)}
         >
           Delete
         </button>
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        title="Delete Idea"
+        itemName={data?.text || 'Untitled Idea'}
+        phraseEnforce={true}
+      />
 
       <textarea
         value={String(data?.text ?? '')}
