@@ -4,6 +4,9 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import React, { useState } from 'react';
 import { useMindMap, type Generation, type Platform } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrash } from '@fortawesome/free-solid-svg-icons';
+
 
 export type IdeaNodeType = Node<{ text?: string }, 'idea'>;
 
@@ -73,10 +76,10 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
         <div className="text-xs font-semibold text-dark">Idea</div>
         <button
           type="button"
-          className="nodrag rounded-md bg-gray-2 px-2 py-1 text-[11px] text-dark hover:bg-gray-2/70"
+          className="nodrag bg-red-500 rounded-md bg-red-5 px-2 py-1 text-[11px] text-white hover:bg-red-6"
           onClick={() => setIsDeleteModalOpen(true)}
         >
-          Delete
+          <FontAwesomeIcon icon={faTrash} />
         </button>
       </div>
 
@@ -86,7 +89,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
         onConfirm={handleDelete}
         title="Delete Idea"
         itemName={data?.text || 'Untitled Idea'}
-        phraseEnforce={true}
+        phraseEnforce={false}
       />
 
       <textarea
