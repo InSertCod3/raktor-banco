@@ -99,7 +99,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
         onFocus={() => mindmap.setSelectedNodeId(id)}
         rows={3}
         placeholder="Write the idea…"
-        className="nodrag mt-2 w-full resize-none rounded-lg border border-stroke bg-transparent p-2 text-sm text-dark outline-hidden focus:border-primary"
+        className="nodrag mt-2 w-full rounded-lg border border-stroke bg-transparent p-2 text-sm text-dark outline-hidden focus:border-primary"
       />
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
