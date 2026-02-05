@@ -108,7 +108,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
           className="nodrag rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-dark"
           onClick={() => mindmap.addChildNode(id)}
         >
-          + Child
+          Create Idea
         </button>
 
         <div className="nodrag ml-auto flex items-center gap-1 rounded-md bg-gray-1 p-1">

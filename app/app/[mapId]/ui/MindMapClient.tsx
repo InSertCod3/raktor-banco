@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   addEdge,
   Background,
@@ -12,11 +12,18 @@ import {
   type Connection,
   type Edge,
   type Node,
-} from '@xyflow/react';
-import toast from 'react-hot-toast';
+} from "@xyflow/react";
+import toast from "react-hot-toast";
 
-import IdeaNode from './IdeaNode';
-import { MindMapContext, type Generation, type Platform } from './MindMapContext';
+import IdeaNode from "./IdeaNode";
+import SocialNode from "./SocialNode";
+import NodeCreationSidebar from "./NodeCreationSidebar";
+import {
+  MindMapContext,
+  type Generation,
+  type NodeType,
+  type Platform,
+} from "./MindMapContext";
 
 type MapResponse = {
   map: {
@@ -31,7 +38,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [mapTitle, setMapTitle] = useState('Loading…');
+  const [mapTitle, setMapTitle] = useState("Loading…");
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
@@ -41,7 +48,13 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const saveTimer = useRef<number | null>(null);
   const titleTimer = useRef<number | null>(null);
 
-  const nodeTypes = useMemo(() => ({ idea: IdeaNode }), []);
+  const nodeTypes = useMemo(
+    () => ({
+      idea: IdeaNode,
+      social: SocialNode,
+    }),
+    [],
+  );
 
   useEffect(() => {
     toast(
@@ -57,10 +70,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         </div>
       ),
       {
-        id: 'map-tip',
-        position: 'top-right',
+        id: "map-tip",
+        position: "top-right",
         duration: 8000,
-      }
+      },
     );
   }, []);
 
@@ -68,9 +81,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     let cancelled = false;
     (async () => {
       setLoadError(null);
-      const res = await fetch(`/api/maps/${mapId}`, { cache: 'no-store' });
+      const res = await fetch(`/api/maps/${mapId}`, { cache: "no-store" });
       if (!res.ok) {
-        if (!cancelled) setLoadError('Could not load map (is DATABASE_URL set?)');
+        if (!cancelled)
+          setLoadError("Could not load map (is DATABASE_URL set?)");
         return;
       }
       const data = (await res.json()) as MapResponse;
@@ -95,13 +109,13 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       setIsSaving(true);
       try {
         await fetch(`/api/maps/${mapId}/graph`, {
-          method: 'PUT',
-          headers: { 'content-type': 'application/json' },
+          method: "PUT",
+          headers: { "content-type": "application/json" },
           body: JSON.stringify({ nodes, edges }),
         });
-        toast.success('Saved', {
-          id: 'autosave',
-          position: 'top-center',
+        toast.success("Saved", {
+          id: "autosave",
+          position: "top-center",
           duration: 2000,
         });
       } finally {
@@ -120,13 +134,13 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     if (titleTimer.current) window.clearTimeout(titleTimer.current);
     titleTimer.current = window.setTimeout(async () => {
       await fetch(`/api/maps/${mapId}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: mapTitle.trim() || 'Untitled map' }),
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title: mapTitle.trim() || "Untitled map" }),
       });
-      toast.success('Title saved', {
-        id: 'autosave-title',
-        position: 'top-center',
+      toast.success("Title saved", {
+        id: "autosave-title",
+        position: "top-center",
         duration: 2000,
       });
     }, 650);
@@ -136,7 +150,9 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   }, [loaded, mapId, mapTitle]);
 
   function onConnect(conn: Connection) {
-    setEdges((eds) => addEdge({ ...conn, id: crypto.randomUUID(), type: 'smoothstep' }, eds));
+    setEdges((eds) =>
+      addEdge({ ...conn, id: crypto.randomUUID(), type: "smoothstep" }, eds),
+    );
   }
 
   function addChildNodeById(parentNodeId: string) {
@@ -146,48 +162,66 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     const id = crypto.randomUUID();
     const child: Node = {
       id,
-      type: 'idea',
+      type: "idea",
       position: { x: parent.position.x + 240, y: parent.position.y + 80 },
-      data: { text: 'New idea' },
+      data: { text: "New idea" },
     };
 
     setNodes((ns) => [...ns, child]);
     setEdges((es) => [
       ...es,
-      { id: crypto.randomUUID(), source: parent.id, target: id, type: 'smoothstep' },
+      {
+        id: crypto.randomUUID(),
+        source: parent.id,
+        target: id,
+        type: "smoothstep",
+      },
     ]);
     setSelectedNodeId(id);
   }
 
   function updateNodeText(nodeId: string, text: string) {
     setNodes((ns) =>
-      ns.map((n) => (n.id === nodeId ? { ...n, data: { ...(n.data as any), text } } : n))
+      ns.map((n) =>
+        n.id === nodeId ? { ...n, data: { ...(n.data as any), text } } : n,
+      ),
     );
   }
 
   function deleteNode(nodeId: string) {
     setSelectedNodeId((current) => (current === nodeId ? null : current));
     setNodes((ns) => ns.filter((n) => n.id !== nodeId));
-    setEdges((es) => es.filter((e) => e.source !== nodeId && e.target !== nodeId));
+    setEdges((es) =>
+      es.filter((e) => e.source !== nodeId && e.target !== nodeId),
+    );
   }
 
-  async function generate(nodeId: string, platform: Platform): Promise<Generation> {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+  async function generate(
+    nodeId: string,
+    platform: Platform,
+  ): Promise<Generation> {
+    const res = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({ mapId, nodeId, platform }),
     });
     const data = (await res.json()) as any;
-    if (!res.ok) throw new Error(data?.error ?? 'Generation failed.');
+    if (!res.ok) throw new Error(data?.error ?? "Generation failed.");
     return data.generation as Generation;
   }
 
-  async function listGenerations(nodeId: string, platform: Platform): Promise<Generation[]> {
-    const res = await fetch(`/api/nodes/${nodeId}/generated?platform=${platform}`, {
-      cache: 'no-store',
-    });
+  async function listGenerations(
+    nodeId: string,
+    platform: Platform,
+  ): Promise<Generation[]> {
+    const res = await fetch(
+      `/api/nodes/${nodeId}/generated?platform=${platform}`,
+      {
+        cache: "no-store",
+      },
+    );
     const data = (await res.json()) as any;
-    if (!res.ok) throw new Error(data?.error ?? 'Could not load generations.');
+    if (!res.ok) throw new Error(data?.error ?? "Could not load generations.");
     return (data.items as Generation[]) ?? [];
   }
 
@@ -195,11 +229,17 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
         <div className="rounded-xl border border-stroke bg-white p-6 shadow-1">
-          <div className="text-lg font-semibold text-dark">Can’t load this map</div>
+          <div className="text-lg font-semibold text-dark">
+            Can’t load this map
+          </div>
           <p className="mt-2 text-sm text-body-color">{loadError}</p>
           <p className="mt-4 text-sm text-body-color">
-            Set <code className="rounded bg-gray-2 px-1">DATABASE_URL</code> and run{' '}
-            <code className="rounded bg-gray-2 px-1">npm run prisma:migrate</code>.
+            Set <code className="rounded bg-gray-2 px-1">DATABASE_URL</code> and
+            run{" "}
+            <code className="rounded bg-gray-2 px-1">
+              npm run prisma:migrate
+            </code>
+            .
           </p>
         </div>
       </div>
@@ -232,6 +272,11 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           </div>
         </div>
 
+        <NodeCreationSidebar
+          onCreateIdeaNode={() => {}}
+          onCreateSocialNode={() => {}}
+        />
+
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -250,5 +295,3 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     </MindMapContext.Provider>
   );
 }
-
-

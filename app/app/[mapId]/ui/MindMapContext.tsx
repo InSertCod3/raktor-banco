@@ -12,6 +12,8 @@ export type Generation = {
   model: string;
 };
 
+export type NodeType = 'idea' | 'social';
+
 export type MindMapContextValue = {
   mapId: string;
   isSaving: boolean;
@@ -19,7 +21,8 @@ export type MindMapContextValue = {
   setSelectedNodeId: (id: string | null) => void;
 
   updateNodeText: (nodeId: string, text: string) => void;
-  addChildNode: (parentNodeId: string) => void;
+  addChildNode: (parentNodeId: string, type?: NodeType) => void;
+  addRootNode: (type: NodeType) => void;
   deleteNode: (nodeId: string) => void;
 
   generate: (nodeId: string, platform: Platform) => Promise<Generation>;
