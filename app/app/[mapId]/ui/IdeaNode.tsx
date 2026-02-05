@@ -2,6 +2,7 @@
 
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useMindMap, type Generation, type Platform } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -165,6 +166,10 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
                   className="nodrag rounded bg-white px-2 py-1 text-[11px] text-dark shadow-1 hover:bg-gray-2"
                   onClick={async () => {
                     await navigator.clipboard.writeText(items[0].output);
+                    toast.success('Copied to clipboard', {
+                      id: 'copy-toast',
+                      position: 'top-right',
+                    });
                   }}
                 >
                   Copy

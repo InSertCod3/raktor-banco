@@ -13,6 +13,7 @@ import {
   type Edge,
   type Node,
 } from '@xyflow/react';
+import toast from 'react-hot-toast';
 
 import IdeaNode from './IdeaNode';
 import { MindMapContext, type Generation, type Platform } from './MindMapContext';
@@ -41,6 +42,27 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const titleTimer = useRef<number | null>(null);
 
   const nodeTypes = useMemo(() => ({ idea: IdeaNode }), []);
+
+  useEffect(() => {
+    toast(
+      (t) => (
+        <div className="flex items-center gap-2">
+          <span>Tip: click a node to edit/generate</span>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="ml-2 rounded-full p-1 hover:bg-black/5"
+          >
+            ✕
+          </button>
+        </div>
+      ),
+      {
+        id: 'map-tip',
+        position: 'top-right',
+        duration: 8000,
+      }
+    );
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +99,11 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ nodes, edges }),
         });
+        toast.success('Saved', {
+          id: 'autosave',
+          position: 'top-center',
+          duration: 2000,
+        });
       } finally {
         setIsSaving(false);
       }
@@ -96,6 +123,11 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ title: mapTitle.trim() || 'Untitled map' }),
+      });
+      toast.success('Title saved', {
+        id: 'autosave-title',
+        position: 'top-center',
+        duration: 2000,
       });
     }, 650);
     return () => {
@@ -197,10 +229,6 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
               className="w-[260px] bg-transparent text-sm font-semibold text-dark outline-hidden"
               aria-label="Map title"
             />
-            <div className="text-xs text-body-color">{isSaving ? 'Saving…' : 'Saved'}</div>
-          </div>
-          <div className="pointer-events-auto text-xs text-body-color">
-            Tip: click a node to edit/generate
           </div>
         </div>
 
