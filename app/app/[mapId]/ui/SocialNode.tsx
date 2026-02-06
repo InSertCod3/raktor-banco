@@ -41,7 +41,7 @@ const SocialNode = ({ data, id, selected }: SocialNodeProps) => {
           <h3 className="text-blue-800 font-semibold">{data.label}</h3>
           <button
             type="button"
-            className="nodrag rounded-md bg-red-5 px-2 py-1 text-[11px] text-white hover:bg-red-6"
+            className="nodrag rounded-md bg-red-500 px-2 py-1 text-[11px] text-white hover:bg-red-6"
             onClick={() => setIsDeleteModalOpen(true)}
           >
             <FontAwesomeIcon icon={faTrash} />
@@ -60,16 +60,6 @@ const SocialNode = ({ data, id, selected }: SocialNodeProps) => {
         <p className="text-blue-700">
           {data.content || "Social content goes here..."}
         </p>
-
-        <div className="flex justify-between items-center">
-          <button
-            className="text-blue-600 hover:text-blue-800 border border-blue-200 rounded-md px-3 py-1 text-sm hover:bg-blue-50"
-            onClick={handleCreateIdea}
-          >
-            <span className="inline-block w-4 h-4 mr-2">+</span>
-            Create Idea
-          </button>
-        </div>
       </div>
     </div>
   );
