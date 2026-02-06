@@ -155,16 +155,24 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     );
   }
 
-  function addChildNodeById(parentNodeId: string) {
+  function addChildNodeById(
+    parentNodeId: string,
+    type: NodeType = "idea",
+    data?: Record<string, unknown>,
+  ) {
     const parent = nodes.find((n) => n.id === parentNodeId) ?? nodes[0];
     if (!parent) return;
 
     const id = crypto.randomUUID();
+    const childType: NodeType = type;
     const child: Node = {
       id,
-      type: "idea",
+      type: childType,
       position: { x: parent.position.x + 240, y: parent.position.y + 80 },
-      data: { text: "New idea" },
+      data:
+        childType === "social"
+          ? { label: "Social post", type: "social", content: "", ...data }
+          : { text: "New idea", ...data },
     };
 
     setNodes((ns) => [...ns, child]);
@@ -177,6 +185,23 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         type: "smoothstep",
       },
     ]);
+    setSelectedNodeId(id);
+  }
+
+  function addRootNode(type: NodeType, data?: Record<string, unknown>) {
+    const id = crypto.randomUUID();
+    const offset = nodes.length * 40;
+    const node: Node = {
+      id,
+      type,
+      position: { x: offset, y: offset },
+      data:
+        type === "social"
+          ? { label: "Social post", type: "social", content: "", ...data }
+          : { text: "New idea", ...data },
+    };
+
+    setNodes((ns) => [...ns, node]);
     setSelectedNodeId(id);
   }
 
@@ -255,6 +280,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         setSelectedNodeId,
         updateNodeText,
         addChildNode: addChildNodeById,
+        addRootNode,
         deleteNode,
         generate,
         listGenerations,
@@ -272,10 +298,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           </div>
         </div>
 
-        <NodeCreationSidebar
-          onCreateIdeaNode={() => {}}
-          onCreateSocialNode={() => {}}
-        />
+        <NodeCreationSidebar />
 
         <ReactFlow
           nodes={nodes}

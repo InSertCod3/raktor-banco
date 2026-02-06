@@ -44,6 +44,11 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
       const gen = await mindmap.generate(id, platform);
       setItems((prev) => [gen, ...prev]);
       setShowOutput(true);
+      mindmap.addChildNode(id, 'social', {
+        label: platformLabel(platform),
+        type: 'social',
+        content: gen.output,
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed.');
     } finally {
@@ -182,5 +187,4 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
     </div>
   );
 }
-
 
