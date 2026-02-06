@@ -316,12 +316,12 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       }}
     >
       <div className="relative h-dvh w-full">
-        <div className="pointer-events-none absolute left-4 top-4 z-10 flex w-[min(520px,calc(100vw-2rem))] items-center justify-between rounded-xl border border-stroke bg-white/90 p-3 shadow-1 backdrop-blur">
-          <div className="pointer-events-auto flex items-center gap-3">
+        <div className="pointer-events-none w-[25%] absolute left-4 top-4 z-10 flex items-center justify-between rounded-xl border border-stroke bg-white/90 p-3 shadow-1 backdrop-blur">
+          <div className="pointer-events-auto w-full flex items-center gap-3">
             <input
               value={mapTitle}
               onChange={(e) => setMapTitle(e.target.value)}
-              className="w-[260px] bg-transparent text-sm font-semibold text-dark outline-hidden"
+              className="w-full bg-transparent text-sm font-semibold text-dark outline-hidden"
               aria-label="Map title"
             />
           </div>

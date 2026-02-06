@@ -37,50 +37,91 @@ export default async function MindAppHome({
   }
 
   return (
-    <main className="relative min-h-dvh overflow-hidden bg-gray-1">
-      <BackgroundGrid strokeColor="rgba(55, 88, 249, 0.08)" gridSize={72} strokeWidth={1} />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/70 via-white/20 to-white/70" />
+    <main className="relative min-h-dvh overflow-hidden bg-[#f6f5f1] font-['Space_Grotesk']">
+      <BackgroundGrid strokeColor="rgba(9, 14, 52, 0.08)" gridSize={84} strokeWidth={1} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.8),_rgba(246,245,241,0.9))]" />
+      <div className="pointer-events-none absolute -left-20 top-12 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
+      <div className="pointer-events-none absolute right-0 top-40 h-80 w-80 rounded-full bg-blue-200/40 blur-3xl" />
 
-      <div className="relative mx-auto max-w-6xl px-4 py-10">
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div className="min-w-[260px]">
-            <Link href="/" className="text-xs font-medium text-body-color hover:text-primary">
-              ← Back to landing
-            </Link>
-            <h1 className="mt-3 text-3xl font-bold text-dark">Mind Mapper</h1>
-            <p className="mt-2 max-w-[560px] text-body-color">
-              A visual-first workspace: map your ideas, then generate LinkedIn/Facebook posts from any node.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-body-color">
+      <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-10">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Link href="/" className="text-xs font-semibold uppercase tracking-[0.28em] text-body-color">
+            Back to landing
+          </Link>
+          <div className="flex items-center gap-3 text-xs text-body-color">
+            <span className="rounded-full border border-stroke bg-white/70 px-3 py-1">
               {dbError ? 'Offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
-            </div>
+            </span>
             <Link
               href="/app/new"
-              className="rounded-md bg-primary px-5 py-3 text-sm font-semibold text-white shadow-1 hover:bg-blue-dark"
+              className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 hover:bg-dark-2"
             >
               New map
             </Link>
           </div>
         </div>
 
+        <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-dark/10 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-dark">
+              Visual-first ideation
+            </div>
+            <h1 className="mt-5 text-4xl font-semibold text-dark sm:text-5xl">
+              Mind Mapper turns ideas into share-ready content.
+            </h1>
+            <p className="mt-4 max-w-[560px] text-base text-body-color">
+              Build a map around one thought, branch into supporting ideas, then generate LinkedIn and Facebook drafts
+              from any node without leaving the flow.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link
+                href="/app/new"
+                className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-2 hover:bg-blue-dark"
+              >
+                Start a new map
+              </Link>
+              <div className="text-xs text-body-color">
+                <span className="font-semibold text-dark">Tip:</span> click a node to edit or generate.
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-4 rounded-3xl border border-dark/10 bg-white/80 p-5 shadow-2 backdrop-blur">
+            <div className="flex items-start justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-body-color">Quick actions</div>
+                <div className="mt-2 text-lg font-semibold text-dark">Create, connect, publish.</div>
+              </div>
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-200 to-amber-200" />
+            </div>
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
+                <div className="text-sm font-semibold text-dark">Idea → Social in minutes</div>
+                <div className="mt-1 text-xs text-body-color">Generate copy and keep it attached to the idea node.</div>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
+                <div className="text-sm font-semibold text-dark">Reusable idea graphs</div>
+                <div className="mt-1 text-xs text-body-color">Return to any map and regenerate variations.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {createFailed ? (
-          <div className="mt-6 rounded-xl border border-stroke bg-white/90 p-4 shadow-1 backdrop-blur">
-            <div className="text-sm font-semibold text-dark">Couldn’t create a map</div>
-            <p className="mt-1 text-sm text-body-color">
-              Double-check <code className="rounded bg-gray-2 px-1">DATABASE_URL</code> and run{' '}
-              <code className="rounded bg-gray-2 px-1">npm run prisma:migrate</code>.
+          <div className="mt-8 rounded-2xl border border-red-200 bg-red-50/60 p-4 text-sm text-dark">
+            <div className="font-semibold">Couldn’t create a map</div>
+            <p className="mt-1 text-body-color">
+              Double-check <code className="rounded bg-white px-1">DATABASE_URL</code> and run{' '}
+              <code className="rounded bg-white px-1">npm run prisma:migrate</code>.
             </p>
           </div>
         ) : null}
 
         {dbError ? (
-          <div className="mt-10 rounded-2xl border border-stroke bg-white/90 p-6 shadow-1 backdrop-blur">
+          <div className="mt-10 rounded-3xl border border-stroke bg-white/90 p-6 shadow-2 backdrop-blur">
             <div className="text-sm font-semibold text-dark">Database not configured</div>
             <p className="mt-2 text-sm text-body-color">{dbError}</p>
-            <div className="mt-4 rounded-lg bg-gray-1 p-3 text-sm text-dark">
+            <div className="mt-4 rounded-2xl bg-gray-1 p-4 text-sm text-dark">
               <div className="font-semibold">Quick start</div>
               <div className="mt-2">
                 1) Set <code className="rounded bg-white px-1">DATABASE_URL</code> in <code className="rounded bg-white px-1">.env</code>
@@ -91,11 +132,18 @@ export default async function MindAppHome({
             </div>
           </div>
         ) : (
-          <MapListClient initialMaps={maps} />
+          <div className="mt-10">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-body-color">Your maps</div>
+                <div className="mt-2 text-lg font-semibold text-dark">Recent work</div>
+              </div>
+            </div>
+            <MapListClient initialMaps={maps} />
+          </div>
         )}
       </div>
     </main>
   );
 }
-
 
