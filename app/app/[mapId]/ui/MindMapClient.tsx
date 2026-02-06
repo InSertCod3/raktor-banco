@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import IdeaNode from "./IdeaNode";
 import SocialNode from "./SocialNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
+import DeletableEdge from "./DeletableEdge";
 import {
   MindMapContext,
   type Generation,
@@ -52,6 +53,12 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     () => ({
       idea: IdeaNode,
       social: SocialNode,
+    }),
+    [],
+  );
+  const edgeTypes = useMemo(
+    () => ({
+      deletable: DeletableEdge,
     }),
     [],
   );
@@ -92,7 +99,16 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
       setMapTitle(data.map.title);
       setNodes(data.map.nodes);
-      setEdges(data.map.edges);
+      setEdges(
+        data.map.edges.map((edge) => ({
+          ...edge,
+          type: "deletable",
+          data: {
+            ...(edge.data as Record<string, unknown>),
+            onDelete: deleteEdgeById,
+          },
+        })),
+      );
       setLoaded(true);
     })();
 
@@ -151,7 +167,15 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
   function onConnect(conn: Connection) {
     setEdges((eds) =>
-      addEdge({ ...conn, id: crypto.randomUUID(), type: "smoothstep" }, eds),
+      addEdge(
+        {
+          ...conn,
+          id: crypto.randomUUID(),
+          type: "deletable",
+          data: { onDelete: deleteEdgeById },
+        },
+        eds,
+      ),
     );
   }
 
@@ -182,7 +206,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         id: crypto.randomUUID(),
         source: parent.id,
         target: id,
-        type: "smoothstep",
+        type: "deletable",
+        data: { onDelete: deleteEdgeById },
       },
     ]);
     setSelectedNodeId(id);
@@ -219,6 +244,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     setEdges((es) =>
       es.filter((e) => e.source !== nodeId && e.target !== nodeId),
     );
+  }
+
+  function deleteEdgeById(edgeId: string) {
+    setEdges((es) => es.filter((e) => e.id !== edgeId));
   }
 
   async function generate(
@@ -308,6 +337,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           onConnect={onConnect}
           onNodeClick={(_, node) => setSelectedNodeId(node.id)}
           nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
           fitView
         >
           <Background gap={24} size={1} color="#dfe4ea" />
