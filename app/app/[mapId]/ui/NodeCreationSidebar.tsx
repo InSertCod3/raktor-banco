@@ -18,26 +18,45 @@ export default function NodeCreationSidebar() {
   };
 
   return (
-    <div className="fixed left-4 top-1/2 transform -translate-y-1/2 z-10 w-24">
+    <div className="fixed left-4 top-1/2 z-10 w-64 -translate-y-1/2">
       <Tooltip className="z-10" id="side-bar-tooltip" place="right" />
-      <div className="w-full bg-white/90 backdrop-blur shadow-lg rounded-lg border border-stroke">
-        <div className="flex flex-col items-center p-4">
-          <h3 className="text-lg font-semibold text-dark">Tools</h3>
+      <div className="w-full overflow-hidden rounded-2xl border border-stroke bg-white/90 shadow-2xl backdrop-blur">
+        <div className="flex items-center justify-between px-4 py-3">
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-dark">
+              Tools
+            </h3>
+            <p className="mt-1 text-xs text-body-color">Create nodes fast</p>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-amber-100" />
         </div>
-        <div className="flex flex-col items-center p-4 space-y-4">
+        <div className="px-4 pb-4">
           <button
-            data-tooltip-id="side-bar-tooltip" data-tooltip-content="Create a 'Idea Node' that uses your ideas to generate social media content for your feed."
-            className="justify-start text-blue-600 hover:text-blue-800 border border-blue-200 rounded-md px-4 py-2 text-left hover:bg-blue-50"
+            data-tooltip-id="side-bar-tooltip"
+            data-tooltip-content="Create an Idea Node that can generate social content."
+            className="group flex w-full items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-3 text-left transition hover:from-amber-100 hover:to-white"
             onClick={() => handleCreate("idea")}
           >
-            <FontAwesomeIcon icon={faLightbulb} />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-200/70 text-amber-700 shadow-sm">
+              <FontAwesomeIcon icon={faLightbulb} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-dark">Idea Node</span>
+              <span className="text-xs text-body-color">Capture a thought</span>
+            </span>
           </button>
 
           <button
-            className="justify-start text-blue-600 hover:text-blue-800 border border-blue-200 rounded-md px-4 py-2 text-left hover:bg-blue-50"
+            className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-3 text-left transition hover:from-blue-100 hover:to-white"
             onClick={() => handleCreate("social")}
           >
-            <FontAwesomeIcon icon={faSignsPost} />
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-200/70 text-blue-700 shadow-sm">
+              <FontAwesomeIcon icon={faSignsPost} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-dark">Social Node</span>
+              <span className="text-xs text-body-color">Attach generated copy</span>
+            </span>
           </button>
         </div>
       </div>

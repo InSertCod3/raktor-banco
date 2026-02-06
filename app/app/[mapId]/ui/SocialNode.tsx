@@ -35,7 +35,7 @@ const SocialNode = ({ data, id, selected }: SocialNodeProps) => {
       ].join(" ")}
     >
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-primary" />
-      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-primary" />
+      {/* <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-primary" /> */}
       <div className="p-4">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-blue-800 font-semibold">{data.label}</h3>
