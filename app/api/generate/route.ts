@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { PlatformType, Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
-import { generateSocialText } from '@/app/lib/llm';
+import { streamSocialText } from '@/app/lib/llm';
 import { buildPlatformPrompt } from '@/app/lib/prompts';
 
 const GenerateSchema = z.object({
@@ -87,24 +87,6 @@ export async function POST(req: Request) {
 
   const prompt = buildPlatformPrompt({ platform, ideaText, contextTexts });
 
-  let generated: { outputText: string; model: string; provider: 'openai' | 'ollama' };
-  try {
-    generated = await generateSocialText({
-      systemPrompt: prompt.system,
-      userPrompt: prompt.user,
-      temperature,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Generation failed.';
-    return NextResponse.json(
-      { error: message },
-      { status: 502 }
-    );
-  }
-
-  const outputText = generated.outputText;
-  const model = generated.model;
-
   const last = await prisma.generatedContent.findFirst({
     where: { nodeId, platform },
     orderBy: { revision: 'desc' },
@@ -126,27 +108,13 @@ export async function POST(req: Request) {
   const socialNodeId = socialNode?.id ?? crypto.randomUUID();
   const socialEdgeId = existingSocialEdge?.id ?? crypto.randomUUID();
   const socialLabel = platform === PlatformType.LINKEDIN ? 'LinkedIn' : 'Facebook';
-
-  const [saved, savedSocialNode, savedSocialEdge] = await prisma.$transaction([
-    prisma.generatedContent.create({
-      data: {
-        nodeId,
-        platform,
-        model,
-        prompt: `${prompt.system}\n\n${prompt.user}`,
-        output: outputText,
-        temperature,
-        seed: null,
-        revision: (last?.revision ?? 0) + 1,
-      },
-      select: { id: true, createdAt: true, output: true, revision: true, model: true },
-    }),
+  const [savedSocialNode, savedSocialEdge] = await prisma.$transaction([
     prisma.node.upsert({
       where: { id: socialNodeId },
       update: {
         mapId,
         type: 'social',
-        data: { label: socialLabel, type: 'social', content: outputText },
+        data: { label: socialLabel, type: 'social', content: '' },
       },
       create: {
         id: socialNodeId,
@@ -154,7 +122,7 @@ export async function POST(req: Request) {
         type: 'social',
         positionX: node.positionX + 280,
         positionY: node.positionY + 60,
-        data: { label: socialLabel, type: 'social', content: outputText },
+        data: { label: socialLabel, type: 'social', content: '' },
       },
       select: { id: true, type: true, positionX: true, positionY: true, data: true },
     }),
@@ -179,22 +147,108 @@ export async function POST(req: Request) {
     }),
   ]);
 
-  socialNode = savedSocialNode;
+  const streamData = streamSocialText({
+    systemPrompt: prompt.system,
+    userPrompt: prompt.user,
+    temperature,
+  });
 
-  return NextResponse.json({
-    generation: saved,
-    socialNode: {
-      id: socialNode.id,
-      type: socialNode.type ?? undefined,
-      position: { x: socialNode.positionX, y: socialNode.positionY },
-      data: socialNode.data,
+  const encoder = new TextEncoder();
+  const responseStream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: unknown) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      };
+
+      send({
+        type: 'start',
+        socialNode: {
+          id: savedSocialNode.id,
+          type: savedSocialNode.type ?? undefined,
+          position: { x: savedSocialNode.positionX, y: savedSocialNode.positionY },
+          data: savedSocialNode.data,
+        },
+        socialEdge: {
+          id: savedSocialEdge.id,
+          source: savedSocialEdge.source,
+          target: savedSocialEdge.target,
+          type: savedSocialEdge.type ?? undefined,
+          data: savedSocialEdge.data ?? undefined,
+        },
+      });
+
+      let outputText = '';
+      let model = '';
+
+      try {
+        const iterator = streamData.stream[Symbol.asyncIterator]();
+        while (true) {
+          const next = await iterator.next();
+          if (next.done) {
+            outputText = next.value.outputText;
+            model = next.value.model;
+            break;
+          }
+
+          outputText += next.value;
+          send({ type: 'delta', delta: next.value, socialNodeId: socialNodeId });
+        }
+
+        const [savedGeneration, updatedSocialNode] = await prisma.$transaction([
+          prisma.generatedContent.create({
+            data: {
+              nodeId,
+              platform,
+              model,
+              prompt: `${prompt.system}\n\n${prompt.user}`,
+              output: outputText,
+              temperature,
+              seed: null,
+              revision: (last?.revision ?? 0) + 1,
+            },
+            select: { id: true, createdAt: true, output: true, revision: true, model: true },
+          }),
+          prisma.node.update({
+            where: { id: socialNodeId },
+            data: {
+              data: { label: socialLabel, type: 'social', content: outputText },
+            },
+            select: { id: true, type: true, positionX: true, positionY: true, data: true },
+          }),
+        ]);
+
+        send({
+          type: 'done',
+          provider: streamData.provider,
+          generation: savedGeneration,
+          socialNode: {
+            id: updatedSocialNode.id,
+            type: updatedSocialNode.type ?? undefined,
+            position: { x: updatedSocialNode.positionX, y: updatedSocialNode.positionY },
+            data: updatedSocialNode.data,
+          },
+          socialEdge: {
+            id: savedSocialEdge.id,
+            source: savedSocialEdge.source,
+            target: savedSocialEdge.target,
+            type: savedSocialEdge.type ?? undefined,
+            data: savedSocialEdge.data ?? undefined,
+          },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Generation failed.';
+        send({ type: 'error', error: message });
+      } finally {
+        controller.close();
+      }
     },
-    socialEdge: {
-      id: savedSocialEdge.id,
-      source: savedSocialEdge.source,
-      target: savedSocialEdge.target,
-      type: savedSocialEdge.type ?? undefined,
-      data: savedSocialEdge.data ?? undefined,
+  });
+
+  return new Response(responseStream, {
+    headers: {
+      'content-type': 'application/x-ndjson; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
     },
   });
 }

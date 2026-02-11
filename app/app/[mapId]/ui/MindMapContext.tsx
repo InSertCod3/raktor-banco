@@ -28,7 +28,11 @@ export type MindMapContextValue = {
 
   generate: (
     nodeId: string,
-    platform: Platform
+    platform: Platform,
+    handlers?: {
+      onStart?: () => void;
+      onDelta?: (delta: string) => void;
+    }
   ) => Promise<{
     generation: Generation;
     socialNode?: Node;

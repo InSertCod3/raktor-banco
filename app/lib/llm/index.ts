@@ -39,3 +39,27 @@ export async function generateSocialText(args: {
 
   return { ...generated, provider: client.provider };
 }
+
+export function streamSocialText(args: {
+  systemPrompt: string;
+  userPrompt: string;
+  temperature?: number;
+  provider?: LlmProvider;
+}): {
+  provider: LlmProvider;
+  stream: AsyncGenerator<string, { outputText: string; model: string }, void>;
+} {
+  const client = getLlmClient(args.provider ?? getLlmProvider());
+  const messages = [
+    { role: 'system' as const, content: args.systemPrompt },
+    { role: 'user' as const, content: args.userPrompt },
+  ];
+
+  return {
+    provider: client.provider,
+    stream: client.stream({
+      messages,
+      temperature: args.temperature,
+    }),
+  };
+}

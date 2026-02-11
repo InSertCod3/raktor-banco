@@ -253,19 +253,28 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   async function generate(
     nodeId: string,
     platform: Platform,
+    handlers?: {
+      onStart?: () => void;
+      onDelta?: (delta: string) => void;
+    },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ mapId, nodeId, platform }),
     });
-    const data = (await res.json()) as any;
-    if (!res.ok) throw new Error(data?.error ?? "Generation failed.");
 
-    const socialNode = data?.socialNode as Node | undefined;
-    const socialEdge = data?.socialEdge as Edge | undefined;
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(data?.error ?? "Generation failed.");
+    }
 
-    if (socialNode) {
+    if (!res.body) {
+      throw new Error("Generation stream is unavailable.");
+    }
+
+    const upsertSocialNode = (socialNode: Node | undefined) => {
+      if (!socialNode) return;
       setNodes((current) => {
         const exists = current.some((node) => node.id === socialNode.id);
         if (exists) {
@@ -273,9 +282,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         }
         return [...current, socialNode];
       });
-    }
+    };
 
-    if (socialEdge) {
+    const upsertSocialEdge = (socialEdge: Edge | undefined) => {
+      if (!socialEdge) return;
       const edgeWithDelete = {
         ...socialEdge,
         type: "deletable",
@@ -292,12 +302,100 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         }
         return [...current, edgeWithDelete];
       });
+    };
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let streamedSocialNodeId: string | null = null;
+    let finalGeneration: Generation | undefined;
+    let finalSocialNode: Node | undefined;
+    let finalSocialEdge: Edge | undefined;
+
+    const processLine = (line: string) => {
+      const event = JSON.parse(line) as {
+        type?: "start" | "delta" | "done" | "error";
+        error?: string;
+        delta?: string;
+        socialNodeId?: string;
+        socialNode?: Node;
+        socialEdge?: Edge;
+        generation?: Generation;
+      };
+
+      if (event.type === "error") {
+        throw new Error(event.error ?? "Generation failed.");
+      }
+
+      if (event.type === "start") {
+        handlers?.onStart?.();
+        finalSocialNode = event.socialNode;
+        finalSocialEdge = event.socialEdge;
+        streamedSocialNodeId = event.socialNode?.id ?? null;
+        upsertSocialNode(event.socialNode);
+        upsertSocialEdge(event.socialEdge);
+        return;
+      }
+
+      if (event.type === "delta" && event.delta) {
+        handlers?.onDelta?.(event.delta);
+        const socialNodeId = event.socialNodeId ?? streamedSocialNodeId;
+        if (socialNodeId) {
+          setNodes((current) =>
+            current.map((node) =>
+              node.id === socialNodeId
+                ? {
+                    ...node,
+                    data: {
+                      ...(node.data as Record<string, unknown>),
+                      content: `${String((node.data as { content?: unknown } | null)?.content ?? "")}${event.delta}`,
+                    },
+                  }
+                : node,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (event.type === "done") {
+        finalGeneration = event.generation;
+        finalSocialNode = event.socialNode;
+        finalSocialEdge = event.socialEdge;
+        upsertSocialNode(event.socialNode);
+        upsertSocialEdge(event.socialEdge);
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      let lineBreak = buffer.indexOf("\n");
+      while (lineBreak >= 0) {
+        const line = buffer.slice(0, lineBreak).trim();
+        buffer = buffer.slice(lineBreak + 1);
+        if (line) {
+          processLine(line);
+        }
+        lineBreak = buffer.indexOf("\n");
+      }
+    }
+
+    const trailing = buffer.trim();
+    if (trailing) {
+      processLine(trailing);
+    }
+
+    if (!finalGeneration) {
+      throw new Error("Generation ended without a final result.");
     }
 
     return {
-      generation: data.generation as Generation,
-      socialNode,
-      socialEdge,
+      generation: finalGeneration,
+      socialNode: finalSocialNode,
+      socialEdge: finalSocialEdge,
     };
   }
 

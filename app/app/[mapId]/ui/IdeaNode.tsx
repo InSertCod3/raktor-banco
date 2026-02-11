@@ -23,6 +23,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [items, setItems] = React.useState<Generation[]>([]);
+  const [streamedOutput, setStreamedOutput] = React.useState('');
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
@@ -39,10 +40,17 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
 
   async function doGenerate() {
     setError(null);
+    setStreamedOutput('');
+    setShowOutput(true);
     setLoading(true);
     try {
-      const result = await mindmap.generate(id, platform);
+      const result = await mindmap.generate(id, platform, {
+        onDelta: (delta) => {
+          setStreamedOutput((current) => `${current}${delta}`);
+        },
+      });
       setItems((prev) => [result.generation, ...prev]);
+      setStreamedOutput('');
       setShowOutput(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Generation failed.');
@@ -156,7 +164,9 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
 
           {items[0] ? (
             <>
-              <div className="whitespace-pre-wrap text-xs text-dark">{items[0].output}</div>
+              <div className="whitespace-pre-wrap text-xs text-dark">
+                {loading && streamedOutput ? streamedOutput : items[0].output}
+              </div>
               <div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-body-color">
                 <span>
                   Rev {items[0].revision} • {items[0].model}
@@ -176,6 +186,10 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
                 </button>
               </div>
             </>
+          ) : null}
+
+          {!items[0] && loading && streamedOutput ? (
+            <div className="whitespace-pre-wrap text-xs text-dark">{streamedOutput}</div>
           ) : null}
         </div>
       ) : null}

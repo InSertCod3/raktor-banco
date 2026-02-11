@@ -20,4 +20,5 @@ export abstract class BaseLlmInterface {
   abstract readonly provider: LlmProvider;
   abstract getModelName(): string;
   abstract generate(args: LlmGenerateArgs): Promise<LlmGenerateResult>;
+  abstract stream(args: LlmGenerateArgs): AsyncGenerator<string, LlmGenerateResult, void>;
 }

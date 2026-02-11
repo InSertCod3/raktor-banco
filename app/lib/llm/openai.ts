@@ -43,4 +43,34 @@ export class OpenAILlm extends BaseLlmInterface {
 
     return { outputText, model };
   }
+
+  async *stream(args: LlmGenerateArgs): AsyncGenerator<string, LlmGenerateResult, void> {
+    const model = args.model ?? this.getModelName();
+    const openai = getOpenAIClient();
+
+    const stream = await openai.chat.completions.create({
+      model,
+      temperature: args.temperature ?? 0.2,
+      messages: args.messages.map((message) => ({
+        role: message.role,
+        content: message.content,
+      })),
+      stream: true,
+    });
+
+    let outputText = '';
+    for await (const chunk of stream) {
+      const delta = chunk.choices?.[0]?.delta?.content ?? '';
+      if (!delta) continue;
+      outputText += delta;
+      yield delta;
+    }
+
+    outputText = outputText.trim();
+    if (!outputText) {
+      throw new Error('Model returned an empty response.');
+    }
+
+    return { outputText, model };
+  }
 }
