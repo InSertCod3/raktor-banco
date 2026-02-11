@@ -1,5 +1,6 @@
 'use client';
 
+import type { Edge, Node } from '@xyflow/react';
 import React from 'react';
 
 export type Platform = 'LINKEDIN' | 'FACEBOOK';
@@ -25,7 +26,14 @@ export type MindMapContextValue = {
   addRootNode: (type: NodeType, data?: Record<string, unknown>) => void;
   deleteNode: (nodeId: string) => void;
 
-  generate: (nodeId: string, platform: Platform) => Promise<Generation>;
+  generate: (
+    nodeId: string,
+    platform: Platform
+  ) => Promise<{
+    generation: Generation;
+    socialNode?: Node;
+    socialEdge?: Edge;
+  }>;
   listGenerations: (nodeId: string, platform: Platform) => Promise<Generation[]>;
 };
 

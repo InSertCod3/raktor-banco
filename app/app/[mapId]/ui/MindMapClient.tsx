@@ -253,7 +253,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   async function generate(
     nodeId: string,
     platform: Platform,
-  ): Promise<Generation> {
+  ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -261,7 +261,44 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     });
     const data = (await res.json()) as any;
     if (!res.ok) throw new Error(data?.error ?? "Generation failed.");
-    return data.generation as Generation;
+
+    const socialNode = data?.socialNode as Node | undefined;
+    const socialEdge = data?.socialEdge as Edge | undefined;
+
+    if (socialNode) {
+      setNodes((current) => {
+        const exists = current.some((node) => node.id === socialNode.id);
+        if (exists) {
+          return current.map((node) => (node.id === socialNode.id ? socialNode : node));
+        }
+        return [...current, socialNode];
+      });
+    }
+
+    if (socialEdge) {
+      const edgeWithDelete = {
+        ...socialEdge,
+        type: "deletable",
+        data: {
+          ...(socialEdge.data as Record<string, unknown> | undefined),
+          onDelete: deleteEdgeById,
+        },
+      };
+
+      setEdges((current) => {
+        const exists = current.some((edge) => edge.id === edgeWithDelete.id);
+        if (exists) {
+          return current.map((edge) => (edge.id === edgeWithDelete.id ? edgeWithDelete : edge));
+        }
+        return [...current, edgeWithDelete];
+      });
+    }
+
+    return {
+      generation: data.generation as Generation,
+      socialNode,
+      socialEdge,
+    };
   }
 
   async function listGenerations(

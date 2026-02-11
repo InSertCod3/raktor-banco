@@ -3,8 +3,15 @@ import { PlatformType } from '@prisma/client';
 export function buildPlatformPrompt(args: {
   platform: PlatformType;
   ideaText: string;
+  contextTexts?: string[];
 }): { system: string; user: string } {
   const idea = args.ideaText.trim();
+  const contextTexts = (args.contextTexts ?? [])
+    .map((text) => text.trim())
+    .filter(Boolean);
+  const contextBlock = contextTexts.length
+    ? ['', 'Context from connected idea nodes:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
+    : [];
 
   const system = [
     'You are an assistant that writes short, platform-aware social posts.',
@@ -17,6 +24,7 @@ export function buildPlatformPrompt(args: {
     const user = [
       'Write a LinkedIn post based on this idea:',
       `"${idea}"`,
+      ...contextBlock,
       '',
       'Constraints:',
       '- 900-1400 characters (aim, don’t hard-count)',
@@ -32,6 +40,7 @@ export function buildPlatformPrompt(args: {
   const user = [
     'Write a Facebook post based on this idea:',
     `"${idea}"`,
+    ...contextBlock,
     '',
     'Constraints:',
     '- 300-700 characters (aim, don’t hard-count)',
