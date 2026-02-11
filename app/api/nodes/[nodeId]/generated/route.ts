@@ -5,7 +5,7 @@ import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 
 const QuerySchema = z.object({
-  platform: z.enum(['LINKEDIN', 'FACEBOOK']),
+  platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
 });
 
 export async function GET(

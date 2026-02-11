@@ -8,6 +8,8 @@ import { Tooltip } from 'react-tooltip'
 
 export default function NodeCreationSidebar() {
   const { selectedNodeId, addChildNode, addRootNode } = useMindMap();
+  const tooltipClassName =
+    "z-20 max-w-[260px] rounded-xl border border-slate-700/70 bg-slate-900/95 px-3 py-2 text-xs font-medium leading-relaxed text-slate-100 shadow-xl backdrop-blur";
 
   const handleCreate = (type: NodeType) => {
     if (selectedNodeId) {
@@ -19,7 +21,13 @@ export default function NodeCreationSidebar() {
 
   return (
     <div className="fixed left-4 top-1/2 z-10 w-64 -translate-y-1/2">
-      <Tooltip className="z-10" id="side-bar-tooltip" place="right" />
+      <Tooltip
+        id="side-bar-tooltip"
+        place="right"
+        className={tooltipClassName}
+        opacity={1}
+        delayShow={120}
+      />
       <div className="w-full overflow-hidden rounded-2xl border border-stroke bg-white/90 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between px-4 py-3">
           <div>

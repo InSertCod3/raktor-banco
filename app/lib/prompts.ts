@@ -1,7 +1,7 @@
 import { PlatformType } from '@prisma/client';
 
 export function buildPlatformPrompt(args: {
-  platform: PlatformType;
+  platform: PlatformType | 'INSTAGRAM';
   ideaText: string;
   contextTexts?: string[];
 }): { system: string; user: string } {
@@ -36,7 +36,23 @@ export function buildPlatformPrompt(args: {
     return { system, user };
   }
 
-  // FACEBOOK (MVP)
+  if (args.platform === 'INSTAGRAM') {
+    const user = [
+      'Write an Instagram caption based on this idea:',
+      `"${idea}"`,
+      ...contextBlock,
+      '',
+      'Constraints:',
+      '- 120-350 characters (aim, do not hard-count)',
+      '- Strong first line and clear message',
+      '- 0-2 emojis maximum',
+      '- Add 3-6 relevant hashtags at the end',
+      '- Friendly, authentic, concise tone',
+    ].join('\n');
+    return { system, user };
+  }
+
+  // FACEBOOK
   const user = [
     'Write a Facebook post based on this idea:',
     `"${idea}"`,

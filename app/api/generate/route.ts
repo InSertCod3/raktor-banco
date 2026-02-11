@@ -9,7 +9,8 @@ import { buildPlatformPrompt } from '@/app/lib/prompts';
 const GenerateSchema = z.object({
   mapId: z.string().min(1),
   nodeId: z.string().min(1),
-  platform: z.enum(['LINKEDIN', 'FACEBOOK']),
+  socialNodeId: z.string().min(1).optional(),
+  platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
 });
 
 function collectTextValues(input: unknown): string[] {
@@ -37,28 +38,60 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { mapId, nodeId } = parsed.data;
-  const platform = parsed.data.platform as PlatformType;
+  const { mapId, nodeId, socialNodeId: requestedSocialNodeId } = parsed.data;
+  const platform = parsed.data.platform as PlatformType | 'INSTAGRAM';
 
-  const node = await prisma.node.findFirst({
+  const requestedNode = await prisma.node.findFirst({
     where: { id: nodeId, mapId, map: { userId } },
     select: { id: true, type: true, positionX: true, positionY: true, data: true },
   });
 
-  if (!node) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  if ((node.type ?? '').toLowerCase() === 'social') {
-    return NextResponse.json({ error: 'Generate is only supported for idea nodes.' }, { status: 400 });
+  if (!requestedNode) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  let ideaNode = requestedNode;
+  let targetSocialNodeId = requestedSocialNodeId;
+  const requestedIsSocial = (requestedNode.type ?? '').toLowerCase() === 'social';
+
+  if (requestedIsSocial) {
+    targetSocialNodeId = requestedSocialNodeId ?? requestedNode.id;
+    const linkEdge = await prisma.edge.findFirst({
+      where: {
+        mapId,
+        OR: [{ source: requestedNode.id }, { target: requestedNode.id }],
+      },
+      select: { source: true, target: true },
+    });
+
+    if (!linkEdge) {
+      return NextResponse.json({ error: 'Social node is not connected to an idea node.' }, { status: 400 });
+    }
+
+    const connectedIdeaId = linkEdge.source === requestedNode.id ? linkEdge.target : linkEdge.source;
+    const connectedIdea = await prisma.node.findFirst({
+      where: {
+        id: connectedIdeaId,
+        mapId,
+        map: { userId },
+      },
+      select: { id: true, type: true, positionX: true, positionY: true, data: true },
+    });
+
+    if (!connectedIdea || (connectedIdea.type ?? '').toLowerCase() === 'social') {
+      return NextResponse.json({ error: 'Social node must connect to an idea node.' }, { status: 400 });
+    }
+
+    ideaNode = connectedIdea;
   }
 
   const connectedEdges = await prisma.edge.findMany({
     where: {
       mapId,
-      OR: [{ source: nodeId }, { target: nodeId }],
+      OR: [{ source: ideaNode.id }, { target: ideaNode.id }],
     },
     select: { id: true, source: true, target: true, type: true, data: true },
   });
 
-  const connectedNodeIds = new Set<string>([nodeId]);
+  const connectedNodeIds = new Set<string>([ideaNode.id]);
   for (const edge of connectedEdges) {
     connectedNodeIds.add(edge.source);
     connectedNodeIds.add(edge.target);
@@ -71,7 +104,14 @@ export async function POST(req: Request) {
 
   const nodeById = new Map(connectedNodes.map((connected) => [connected.id, connected]));
 
-  const ideaText = String((node.data as { text?: unknown } | null)?.text ?? '').trim();
+  if (targetSocialNodeId) {
+    const targetNode = nodeById.get(targetSocialNodeId);
+    if (!targetNode || (targetNode.type ?? '').toLowerCase() !== 'social') {
+      return NextResponse.json({ error: 'Requested social node is invalid for this idea.' }, { status: 400 });
+    }
+  }
+
+  const ideaText = String((ideaNode.data as { text?: unknown } | null)?.text ?? '').trim();
   if (!ideaText) {
     return NextResponse.json(
       { error: 'Node has no idea text to generate from.' },
@@ -81,48 +121,53 @@ export async function POST(req: Request) {
 
   const temperature = 0.2;
   const contextTexts = connectedNodes
-    .filter((connected) => connected.id !== nodeId && (connected.type ?? '').toLowerCase() !== 'social')
+    .filter((connected) => connected.id !== ideaNode.id && (connected.type ?? '').toLowerCase() !== 'social')
     .flatMap((connected) => collectTextValues(connected.data))
     .filter(Boolean);
 
   const prompt = buildPlatformPrompt({ platform, ideaText, contextTexts });
 
   const last = await prisma.generatedContent.findFirst({
-    where: { nodeId, platform },
+    where: { nodeId: ideaNode.id, platform: platform as PlatformType },
     orderBy: { revision: 'desc' },
     select: { revision: true },
   });
 
-  let socialNode = connectedEdges
-    .map((edge) => nodeById.get(edge.source === nodeId ? edge.target : edge.source))
+  let socialNode = (targetSocialNodeId ? nodeById.get(targetSocialNodeId) : null) ?? connectedEdges
+    .map((edge) => nodeById.get(edge.source === ideaNode.id ? edge.target : edge.source))
     .find((candidate) => (candidate?.type ?? '').toLowerCase() === 'social');
+
+  if (socialNode && (socialNode.type ?? '').toLowerCase() !== 'social') {
+    socialNode = undefined;
+  }
 
   const existingSocialEdge = socialNode
     ? connectedEdges.find(
         (edge) =>
-          (edge.source === nodeId && edge.target === socialNode!.id) ||
-          (edge.target === nodeId && edge.source === socialNode!.id)
+          (edge.source === ideaNode.id && edge.target === socialNode!.id) ||
+          (edge.target === ideaNode.id && edge.source === socialNode!.id)
       )
     : null;
 
-  const socialNodeId = socialNode?.id ?? crypto.randomUUID();
+  const socialNodeId = socialNode?.id ?? targetSocialNodeId ?? crypto.randomUUID();
   const socialEdgeId = existingSocialEdge?.id ?? crypto.randomUUID();
-  const socialLabel = platform === PlatformType.LINKEDIN ? 'LinkedIn' : 'Facebook';
+  const socialLabel =
+    platform === 'LINKEDIN' ? 'LinkedIn' : platform === 'FACEBOOK' ? 'Facebook' : 'Instagram';
   const [savedSocialNode, savedSocialEdge] = await prisma.$transaction([
     prisma.node.upsert({
       where: { id: socialNodeId },
       update: {
         mapId,
         type: 'social',
-        data: { label: socialLabel, type: 'social', content: '' },
+        data: { label: socialLabel, type: 'social', platform, content: '' },
       },
       create: {
         id: socialNodeId,
         mapId,
         type: 'social',
-        positionX: node.positionX + 280,
-        positionY: node.positionY + 60,
-        data: { label: socialLabel, type: 'social', content: '' },
+        positionX: ideaNode.positionX + 280,
+        positionY: ideaNode.positionY + 60,
+        data: { label: socialLabel, type: 'social', platform, content: '' },
       },
       select: { id: true, type: true, positionX: true, positionY: true, data: true },
     }),
@@ -130,7 +175,7 @@ export async function POST(req: Request) {
       where: { id: socialEdgeId },
       update: {
         mapId,
-        source: nodeId,
+        source: ideaNode.id,
         target: socialNodeId,
         type: existingSocialEdge?.type ?? 'deletable',
         data: existingSocialEdge?.data ?? Prisma.JsonNull,
@@ -138,7 +183,7 @@ export async function POST(req: Request) {
       create: {
         id: socialEdgeId,
         mapId,
-        source: nodeId,
+        source: ideaNode.id,
         target: socialNodeId,
         type: 'deletable',
         data: Prisma.JsonNull,
@@ -197,8 +242,8 @@ export async function POST(req: Request) {
         const [savedGeneration, updatedSocialNode] = await prisma.$transaction([
           prisma.generatedContent.create({
             data: {
-              nodeId,
-              platform,
+              nodeId: ideaNode.id,
+              platform: platform as PlatformType,
               model,
               prompt: `${prompt.system}\n\n${prompt.user}`,
               output: outputText,
@@ -211,7 +256,7 @@ export async function POST(req: Request) {
           prisma.node.update({
             where: { id: socialNodeId },
             data: {
-              data: { label: socialLabel, type: 'social', content: outputText },
+              data: { label: socialLabel, type: 'social', platform, content: outputText },
             },
             select: { id: true, type: true, positionX: true, positionY: true, data: true },
           }),

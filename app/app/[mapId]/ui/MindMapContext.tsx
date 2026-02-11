@@ -3,7 +3,7 @@
 import type { Edge, Node } from '@xyflow/react';
 import React from 'react';
 
-export type Platform = 'LINKEDIN' | 'FACEBOOK';
+export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
 
 export type Generation = {
   id: string;
@@ -32,6 +32,9 @@ export type MindMapContextValue = {
     handlers?: {
       onStart?: () => void;
       onDelta?: (delta: string) => void;
+    },
+    options?: {
+      socialNodeId?: string;
     }
   ) => Promise<{
     generation: Generation;

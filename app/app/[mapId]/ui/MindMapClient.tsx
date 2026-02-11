@@ -195,7 +195,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       position: { x: parent.position.x + 240, y: parent.position.y + 80 },
       data:
         childType === "social"
-          ? { label: "Social post", type: "social", content: "", ...data }
+          ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
           : { text: "New idea", ...data },
     };
 
@@ -222,7 +222,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       position: { x: offset, y: offset },
       data:
         type === "social"
-          ? { label: "Social post", type: "social", content: "", ...data }
+          ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
           : { text: "New idea", ...data },
     };
 
@@ -257,11 +257,19 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       onStart?: () => void;
       onDelta?: (delta: string) => void;
     },
+    options?: {
+      socialNodeId?: string;
+    },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     const res = await fetch("/api/generate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mapId, nodeId, platform }),
+      body: JSON.stringify({
+        mapId,
+        nodeId,
+        platform,
+        socialNodeId: options?.socialNodeId,
+      }),
     });
 
     if (!res.ok) {
