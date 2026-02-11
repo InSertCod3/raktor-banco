@@ -29,7 +29,7 @@ export default function Home() {
               Open App
             </Link>
             <Link
-              href="/app/new"
+              href="/app"
               className="rounded-full bg-[#1c232b] px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white hover:bg-[#2a3440]"
             >
               Start Mapping
