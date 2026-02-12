@@ -5,7 +5,7 @@ function getOllamaHost(): string {
 }
 
 export function getOllamaModelName(): string {
-  return process.env.OLLAMA_MODEL?.trim() || 'llama3.2:latest';
+  return process.env.OLLAMA_MODEL?.trim() || 'gemini-3-flash-preview:cloud';
 }
 
 export class OllamaLlm extends BaseLlmInterface {

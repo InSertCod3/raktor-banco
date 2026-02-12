@@ -4,6 +4,7 @@ import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { Tooltip } from 'react-tooltip';
 import { useMindMap } from './MindMapContext';
 
 type SuggestionNodeData = {
@@ -110,9 +111,12 @@ function markdownToHtml(markdown: string): string {
 
 export default function SuggestionNode({ id, data, selected }: NodeProps<SuggestionNodeType>) {
   const mindmap = useMindMap();
+  const tooltipClassName =
+    'z-20 rounded-xl border border-slate-700/70 bg-slate-900/95 px-3 py-2 text-xs font-medium text-slate-100 shadow-xl backdrop-blur';
   const isFocused = selected || mindmap.selectedNodeId === id;
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [copyMessage, setCopyMessage] = React.useState<string | null>(null);
   const hasAutoTriggeredRef = React.useRef(false);
 
   const sourceNodeId = data?.sourceNodeId;
@@ -168,6 +172,43 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
     void runGenerate();
   }, [lastGeneratedSourceText, runGenerate, sourceNodeId, sourceText]);
 
+  const copySuggestion = React.useCallback(async () => {
+    const plainText = suggestionText.trim();
+    if (!plainText) return;
+
+    const fallbackCopy = (text: string): boolean => {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return ok;
+      } catch {
+        return false;
+      }
+    };
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(plainText);
+      } else {
+        const ok = fallbackCopy(plainText);
+        if (!ok) throw new Error('Fallback copy failed');
+      }
+      setCopyMessage('Copied');
+      setTimeout(() => setCopyMessage(null), 1500);
+    } catch {
+      const ok = fallbackCopy(plainText);
+      setCopyMessage(ok ? 'Copied' : 'Copy failed');
+      setTimeout(() => setCopyMessage(null), 1500);
+    }
+  }, [suggestionText]);
+
   return (
     <div
       className={[
@@ -176,6 +217,13 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
     >
+      <Tooltip
+        id={`suggestion-copy-tooltip-${id}`}
+        place="bottom"
+        className={tooltipClassName}
+        opacity={1}
+        delayShow={80}
+      />
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-violet-500" />
       {/* <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-violet-500" /> */}
 
@@ -192,10 +240,23 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
         </button>
       </div>
       <div className="text-sm font-semibold text-dark">{data?.title || 'Generation Suggestion'}</div>
-      <div
-        className="mt-2 text-xs leading-5 text-black [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-[12px] [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-1 [&_code]:rounded [&_code]:bg-violet-100/70 [&_code]:px-1 [&_code]:py-0.5 [&_strong]:font-semibold [&_em]:italic"
-        dangerouslySetInnerHTML={{ __html: markdownToHtml(suggestionText) }}
-      />
+      <div className="group relative mt-2">
+        <button
+          type="button"
+          className="nodrag absolute right-1 top-1 z-10 rounded-md bg-violet-600 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-all duration-150 hover:bg-violet-700 group-hover:translate-y-0 group-hover:opacity-100"
+          style={{ transform: 'translateY(-4px)' }}
+          data-tooltip-id={`suggestion-copy-tooltip-${id}`}
+          data-tooltip-content="copy all the text"
+          onClick={() => void copySuggestion()}
+        >
+          Copy all
+        </button>
+        <div
+          className="nodrag cursor-default select-text text-xs leading-5 text-black [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-[12px] [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-1 [&_code]:rounded [&_code]:bg-violet-100/70 [&_code]:px-1 [&_code]:py-0.5 [&_strong]:font-semibold [&_em]:italic"
+          dangerouslySetInnerHTML={{ __html: markdownToHtml(suggestionText) }}
+        />
+      </div>
+      {copyMessage ? <p className="mt-1 text-[11px] text-violet-700">{copyMessage}</p> : null}
 
       <button
         type="button"

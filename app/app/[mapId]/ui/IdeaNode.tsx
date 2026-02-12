@@ -1,7 +1,7 @@
 'use client';
 
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -13,8 +13,15 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
   const mindmap = useMindMap();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [draftText, setDraftText] = useState(String(data?.text ?? ''));
+  const isEditingRef = useRef(false);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
+
+  useEffect(() => {
+    if (isEditingRef.current) return;
+    setDraftText(String(data?.text ?? ''));
+  }, [data?.text]);
 
   const handleDelete = () => {
     mindmap.deleteNode(id);
@@ -70,9 +77,20 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
       />
 
       <textarea
-        value={String(data?.text ?? '')}
-        onChange={(e) => mindmap.updateNodeText(id, e.target.value)}
-        onFocus={() => mindmap.setSelectedNodeId(id)}
+        value={draftText}
+        onChange={(e) => {
+          const nextValue = e.target.value;
+          setDraftText(nextValue);
+          mindmap.updateNodeText(id, nextValue);
+        }}
+        onFocus={() => {
+          isEditingRef.current = true;
+          mindmap.setSelectedNodeId(id);
+        }}
+        onBlur={() => {
+          isEditingRef.current = false;
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
         rows={5}
         placeholder="Write the idea..."
         className="nodrag h-40 w-full rounded-xl border border-emerald-200 bg-white/90 p-3 text-sm text-dark outline-hidden placeholder:text-body-color focus:border-emerald-400"

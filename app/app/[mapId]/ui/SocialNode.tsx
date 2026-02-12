@@ -37,6 +37,53 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const isFocused = selected || mindmap.selectedNodeId === id;
   const content = String(data?.content ?? '');
 
+  const copyWithFallback = (text: string): boolean => {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', 'true');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return ok;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleCopy = async () => {
+    const textToCopy = isGenerating && streamedOutput ? streamedOutput : content;
+    if (!textToCopy) return;
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else if (!copyWithFallback(textToCopy)) {
+        throw new Error('Fallback copy failed');
+      }
+      toast.success('copied to clipboard', {
+        id: `copy-social-${id}`,
+        position: 'top-right',
+      });
+    } catch {
+      const ok = copyWithFallback(textToCopy);
+      if (ok) {
+        toast.success('copied to clipboard', {
+          id: `copy-social-${id}`,
+          position: 'top-right',
+        });
+      } else {
+        toast.error('copy failed', {
+          id: `copy-social-${id}`,
+          position: 'top-right',
+        });
+      }
+    }
+  };
+
   const handleDelete = () => {
     mindmap.deleteNode(id);
     setIsDeleteModalOpen(false);
@@ -133,22 +180,21 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         {!error && !content && !streamedOutput ? (
           <p className="text-xs text-body-color">Generate a post from connected idea context.</p>
         ) : null}
-        <p
-          className="whitespace-pre-wrap text-sm leading-relaxed text-dark cursor-copy"
-          data-tooltip-id={`social-copy-tooltip-${id}`}
-          data-tooltip-content="click to copy"
-          onClick={async () => {
-            const textToCopy = isGenerating && streamedOutput ? streamedOutput : content;
-            if (!textToCopy) return;
-            await navigator.clipboard.writeText(textToCopy);
-            toast.success('copied to clipboard', {
-              id: `copy-social-${id}`,
-              position: 'top-right',
-            });
-          }}
-        >
-          {isGenerating && streamedOutput ? streamedOutput : content}
-        </p>
+        <div className="group relative">
+          <button
+            type="button"
+            className="nodrag absolute right-1 top-1 z-10 rounded-md bg-primary px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-all duration-150 hover:bg-blue-dark group-hover:translate-y-0 group-hover:opacity-100"
+            style={{ transform: 'translateY(-4px)' }}
+            data-tooltip-id={`social-copy-tooltip-${id}`}
+            data-tooltip-content="copy all the text"
+            onClick={() => void handleCopy()}
+          >
+            Copy all
+          </button>
+          <p className="nodrag cursor-default select-text whitespace-pre-wrap text-sm leading-relaxed text-dark">
+            {isGenerating && streamedOutput ? streamedOutput : content}
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
@@ -17,7 +17,14 @@ export default function NodePadNode({ id, data, selected }: NodeProps<NodePadTyp
   const mindmap = useMindMap();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [draftText, setDraftText] = useState(String(data?.text ?? ''));
+  const isEditingRef = useRef(false);
   const isFocused = selected || mindmap.selectedNodeId === id;
+
+  useEffect(() => {
+    if (isEditingRef.current) return;
+    setDraftText(String(data?.text ?? ''));
+  }, [data?.text]);
 
   return (
     <div
@@ -81,9 +88,20 @@ export default function NodePadNode({ id, data, selected }: NodeProps<NodePadTyp
 
       <div className="relative bg-[#fffef8] px-3 pb-3 pt-2">
         <textarea
-          value={String(data?.text ?? '')}
-          onChange={(e) => mindmap.updateNodeText(id, e.target.value)}
-          onFocus={() => mindmap.setSelectedNodeId(id)}
+          value={draftText}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            setDraftText(nextValue);
+            mindmap.updateNodeText(id, nextValue);
+          }}
+          onFocus={() => {
+            isEditingRef.current = true;
+            mindmap.setSelectedNodeId(id);
+          }}
+          onBlur={() => {
+            isEditingRef.current = false;
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
           rows={8}
           placeholder="Write down private ideas, reminders, and sparks..."
           className="nodrag h-52 w-full rounded-lg border border-stone-200 bg-transparent pl-3 pr-3 pt-2 text-[16px] leading-7 text-stone-800 outline-hidden placeholder:text-stone-400 focus:border-emerald-300"
