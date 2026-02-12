@@ -4,13 +4,12 @@ import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
-import { useMindMap, type Platform } from './MindMapContext';
+import { useMindMap } from './MindMapContext';
 
 type SuggestionNodeData = {
   title?: string;
   text?: string;
   sourceNodeId?: string;
-  platform?: Platform;
   lastGeneratedSourceText?: string;
   lastGeneratedAt?: string;
 };
@@ -109,12 +108,6 @@ function markdownToHtml(markdown: string): string {
   return output.join('');
 }
 
-function platformLabel(platform: Platform) {
-  if (platform === 'LINKEDIN') return 'LinkedIn';
-  if (platform === 'FACEBOOK') return 'Facebook';
-  return 'Instagram';
-}
-
 export default function SuggestionNode({ id, data, selected }: NodeProps<SuggestionNodeType>) {
   const mindmap = useMindMap();
   const isFocused = selected || mindmap.selectedNodeId === id;
@@ -123,12 +116,11 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
   const hasAutoTriggeredRef = React.useRef(false);
 
   const sourceNodeId = data?.sourceNodeId;
-  const platform: Platform = data?.platform ?? 'LINKEDIN';
   const sourceText = sourceNodeId ? mindmap.getNodeText(sourceNodeId).trim() : '';
   const lastGeneratedSourceText = String(data?.lastGeneratedSourceText ?? '').trim();
   const hasSourceChanged = !!sourceText && sourceText !== lastGeneratedSourceText;
   const canGenerate = !isGenerating && !!sourceNodeId && hasSourceChanged;
-  const suggestionText = data?.text || `Auto-generates advice for ${platformLabel(platform)} from the connected source node.`;
+  const suggestionText = data?.text || 'Auto-generates practical advice from the connected source node.';
 
   const runGenerate = React.useCallback(async () => {
     if (!sourceNodeId) return;
@@ -141,7 +133,19 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
     setError(null);
     setIsGenerating(true);
     try {
-      const result = await mindmap.generateSuggestion(sourceNodeId, platform);
+      let streamedText = '';
+      const result = await mindmap.generateSuggestion(sourceNodeId, {
+        onStart: () => {
+          streamedText = '';
+          mindmap.updateNodeData(id, { text: '' });
+        },
+        onDelta: (delta) => {
+          streamedText += delta;
+          mindmap.updateNodeData(id, {
+            text: streamedText,
+          });
+        },
+      });
       mindmap.updateNodeData(id, {
         text: result.output,
         lastGeneratedSourceText: currentSourceText,
@@ -152,7 +156,7 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
     } finally {
       setIsGenerating(false);
     }
-  }, [id, mindmap, platform, sourceNodeId]);
+  }, [id, mindmap, sourceNodeId]);
 
   React.useEffect(() => {
     if (hasAutoTriggeredRef.current) return;
@@ -199,7 +203,7 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
         disabled={!canGenerate}
         className="mt-3 w-full rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-violet-300"
       >
-        {isGenerating ? `Generating ${platformLabel(platform)}...` : `Generate ${platformLabel(platform)}`}
+        {isGenerating ? 'Generating suggestion...' : 'Generate suggestion'}
       </button>
 
       {!hasSourceChanged && !isGenerating ? (

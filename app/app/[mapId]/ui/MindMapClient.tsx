@@ -299,7 +299,6 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         title: "Smart Advice",
         text: "I will analyze the connected parent node and suggest improvements.",
         sourceNodeId,
-        platform: "LINKEDIN",
         lastGeneratedSourceText: "",
       },
     };
@@ -491,15 +490,81 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     return (data.items as Generation[]) ?? [];
   }
 
-  async function generateSuggestion(sourceNodeId: string, platform: Platform = "LINKEDIN"): Promise<{ output: string }> {
+  async function generateSuggestion(
+    sourceNodeId: string,
+    handlers?: {
+      onStart?: () => void;
+      onDelta?: (delta: string) => void;
+    },
+  ): Promise<{ output: string }> {
     const res = await fetch("/api/suggestions", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mapId, sourceNodeId, platform }),
+      body: JSON.stringify({ mapId, sourceNodeId }),
     });
-    const data = (await res.json().catch(() => null)) as { output?: string; error?: string } | null;
-    if (!res.ok) throw new Error(data?.error ?? "Suggestion generation failed.");
-    return { output: data?.output ?? "" };
+    if (!res.ok) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(data?.error ?? "Suggestion generation failed.");
+    }
+    if (!res.body) {
+      throw new Error("Suggestion stream is unavailable.");
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let output = "";
+
+    const processLine = (line: string) => {
+      const event = JSON.parse(line) as {
+        type?: "start" | "delta" | "done" | "error";
+        delta?: string;
+        output?: string;
+        error?: string;
+      };
+
+      if (event.type === "error") {
+        throw new Error(event.error ?? "Suggestion generation failed.");
+      }
+
+      if (event.type === "start") {
+        handlers?.onStart?.();
+        return;
+      }
+
+      if (event.type === "delta" && event.delta) {
+        output += event.delta;
+        handlers?.onDelta?.(event.delta);
+        return;
+      }
+
+      if (event.type === "done") {
+        output = event.output ?? output;
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      let lineBreak = buffer.indexOf("\n");
+      while (lineBreak >= 0) {
+        const line = buffer.slice(0, lineBreak).trim();
+        buffer = buffer.slice(lineBreak + 1);
+        if (line) {
+          processLine(line);
+        }
+        lineBreak = buffer.indexOf("\n");
+      }
+    }
+
+    const trailing = buffer.trim();
+    if (trailing) {
+      processLine(trailing);
+    }
+
+    return { output };
   }
 
   if (loadError) {

@@ -70,21 +70,12 @@ export function buildPlatformPrompt(args: {
 export function buildSuggestionPrompt(args: {
   sourceText: string;
   contextTexts?: string[];
-  platform?: PlatformType | 'INSTAGRAM';
 }): { system: string; user: string } {
   const source = args.sourceText.trim();
   const contextTexts = (args.contextTexts ?? []).map((text) => text.trim()).filter(Boolean);
   const contextBlock = contextTexts.length
     ? ['', 'Related context:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
     : [];
-  const platformLabel =
-    args.platform === 'LINKEDIN'
-      ? 'LinkedIn'
-      : args.platform === 'FACEBOOK'
-        ? 'Facebook'
-        : args.platform === 'INSTAGRAM'
-          ? 'Instagram'
-          : 'social';
 
   const system = [
     'You are an ideation assistant.',
@@ -93,7 +84,7 @@ export function buildSuggestionPrompt(args: {
   ].join('\n');
 
   const user = [
-    `Review this source note and suggest improvements before generating ${platformLabel} content:`,
+    'Review this source note and suggest improvements:',
     `"${source}"`,
     ...contextBlock,
     '',

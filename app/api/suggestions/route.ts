@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PlatformType } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
-import { generateSocialText } from '@/app/lib/llm';
+import { streamSocialText } from '@/app/lib/llm';
 import { buildSuggestionPrompt } from '@/app/lib/prompts';
 
 const SuggestSchema = z.object({
   mapId: z.string().min(1),
   sourceNodeId: z.string().min(1),
-  platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']).optional(),
 });
 
 function collectTextValues(input: unknown): string[] {
@@ -31,7 +29,6 @@ export async function POST(req: Request) {
   }
 
   const { mapId, sourceNodeId } = parsed.data;
-  const platform = (parsed.data.platform ?? 'LINKEDIN') as PlatformType | 'INSTAGRAM';
 
   const sourceNode = await prisma.node.findFirst({
     where: { id: sourceNodeId, mapId, map: { userId } },
@@ -74,22 +71,53 @@ export async function POST(req: Request) {
   const prompt = buildSuggestionPrompt({
     sourceText,
     contextTexts,
-    platform,
   });
 
-  try {
-    const generated = await generateSocialText({
-      systemPrompt: prompt.system,
-      userPrompt: prompt.user,
-      temperature: 0.2,
-    });
-    return NextResponse.json({
-      output: generated.outputText,
-      model: generated.model,
-      provider: generated.provider,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Suggestion generation failed.';
-    return NextResponse.json({ error: message }, { status: 502 });
-  }
+  const streamData = streamSocialText({
+    systemPrompt: prompt.system,
+    userPrompt: prompt.user,
+    temperature: 0.2,
+  });
+
+  const encoder = new TextEncoder();
+  const responseStream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: unknown) => {
+        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+      };
+
+      send({ type: 'start' });
+
+      try {
+        const iterator = streamData.stream[Symbol.asyncIterator]();
+        while (true) {
+          const next = await iterator.next();
+          if (next.done) {
+            send({
+              type: 'done',
+              output: next.value.outputText,
+              model: next.value.model,
+              provider: streamData.provider,
+            });
+            break;
+          }
+
+          send({ type: 'delta', delta: next.value });
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Suggestion generation failed.';
+        send({ type: 'error', error: message });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(responseStream, {
+    headers: {
+      'content-type': 'application/x-ndjson; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      connection: 'keep-alive',
+    },
+  });
 }

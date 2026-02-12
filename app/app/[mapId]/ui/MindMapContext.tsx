@@ -44,7 +44,13 @@ export type MindMapContextValue = {
     socialNode?: Node;
     socialEdge?: Edge;
   }>;
-  generateSuggestion: (sourceNodeId: string, platform?: Platform) => Promise<{ output: string }>;
+  generateSuggestion: (
+    sourceNodeId: string,
+    handlers?: {
+      onStart?: () => void;
+      onDelta?: (delta: string) => void;
+    }
+  ) => Promise<{ output: string }>;
   listGenerations: (nodeId: string, platform: Platform) => Promise<Generation[]>;
 };
 
