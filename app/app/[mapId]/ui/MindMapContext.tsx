@@ -13,7 +13,7 @@ export type Generation = {
   model: string;
 };
 
-export type NodeType = 'idea' | 'social' | 'notepad';
+export type NodeType = 'idea' | 'social' | 'notepad' | 'suggestion';
 
 export type MindMapContextValue = {
   mapId: string;
@@ -22,8 +22,11 @@ export type MindMapContextValue = {
   setSelectedNodeId: (id: string | null) => void;
 
   updateNodeText: (nodeId: string, text: string) => void;
+  updateNodeData: (nodeId: string, dataPatch: Record<string, unknown>) => void;
+  getNodeText: (nodeId: string) => string;
   addChildNode: (parentNodeId: string, type?: NodeType, data?: Record<string, unknown>) => void;
   addRootNode: (type: NodeType, data?: Record<string, unknown>) => void;
+  createSuggestionNode: (sourceNodeId: string) => void;
   deleteNode: (nodeId: string) => void;
 
   generate: (
@@ -41,6 +44,7 @@ export type MindMapContextValue = {
     socialNode?: Node;
     socialEdge?: Edge;
   }>;
+  generateSuggestion: (sourceNodeId: string, platform?: Platform) => Promise<{ output: string }>;
   listGenerations: (nodeId: string, platform: Platform) => Promise<Generation[]>;
 };
 

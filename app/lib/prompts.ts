@@ -67,5 +67,44 @@ export function buildPlatformPrompt(args: {
   return { system, user };
 }
 
+export function buildSuggestionPrompt(args: {
+  sourceText: string;
+  contextTexts?: string[];
+  platform?: PlatformType | 'INSTAGRAM';
+}): { system: string; user: string } {
+  const source = args.sourceText.trim();
+  const contextTexts = (args.contextTexts ?? []).map((text) => text.trim()).filter(Boolean);
+  const contextBlock = contextTexts.length
+    ? ['', 'Related context:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
+    : [];
+  const platformLabel =
+    args.platform === 'LINKEDIN'
+      ? 'LinkedIn'
+      : args.platform === 'FACEBOOK'
+        ? 'Facebook'
+        : args.platform === 'INSTAGRAM'
+          ? 'Instagram'
+          : 'social';
+
+  const system = [
+    'You are an ideation assistant.',
+    'Provide concise, practical advice for improving a source idea.',
+    'Return plain text only.',
+  ].join('\n');
+
+  const user = [
+    `Review this source note and suggest improvements before generating ${platformLabel} content:`,
+    `"${source}"`,
+    ...contextBlock,
+    '',
+    'Return exactly:',
+    '1) One short diagnosis sentence',
+    '2) Three actionable suggestions (numbered)',
+    '3) One improved draft line',
+  ].join('\n');
+
+  return { system, user };
+}
+
 
 

@@ -5,13 +5,14 @@ import React, { useState } from 'react';
 import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 
 export type IdeaNodeType = Node<{ text?: string }, 'idea'>;
 
 export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>) {
   const mindmap = useMindMap();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
 
@@ -27,6 +28,8 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
         isFocused ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-300/30' : 'border-stroke bg-white',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
     >
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-emerald-500" />
       <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-emerald-500" />
@@ -36,13 +39,25 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
           <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">Idea Node</div>
           <div className="text-sm font-semibold text-dark">Core Thought</div>
         </div>
-        <button
-          type="button"
-          className="nodrag rounded-md bg-red-500 px-2 py-1 text-[11px] text-white hover:bg-red-6"
-          onClick={() => setIsDeleteModalOpen(true)}
-        >
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
+        <div className="flex items-center gap-2">
+          {isHovering ? (
+            <button
+              type="button"
+              className="nodrag rounded-md bg-violet-500 px-2 py-1 text-[11px] text-white hover:bg-violet-600"
+              onClick={() => mindmap.createSuggestionNode(id)}
+              title="Create suggestion"
+            >
+              <FontAwesomeIcon icon={faWandMagicSparkles} />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="nodrag rounded-md bg-red-500 px-2 py-1 text-[11px] text-white hover:bg-red-6"
+            onClick={() => setIsDeleteModalOpen(true)}
+          >
+            <FontAwesomeIcon icon={faTrash} />
+          </button>
+        </div>
       </div>
 
       <DeleteConfirmationModal

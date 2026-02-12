@@ -18,6 +18,7 @@ import toast from "react-hot-toast";
 import IdeaNode from "./IdeaNode";
 import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
+import SuggestionNode from "./SuggestionNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
 import {
@@ -55,6 +56,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       idea: IdeaNode,
       social: SocialNode,
       notepad: NodePadNode,
+      suggestion: SuggestionNode,
     }),
     [],
   );
@@ -199,6 +201,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
         : childType === "notepad"
           ? { text: "Personal idea...", ...data }
+          : childType === "suggestion"
+            ? { title: "Generation Suggestion", text: "Use this note to generate content.", ...data }
           : { text: "New idea", ...data },
     };
 
@@ -227,6 +231,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
         : type === "notepad"
           ? { text: "Personal idea...", ...data }
+          : type === "suggestion"
+            ? { title: "Generation Suggestion", text: "Use this note to generate content.", ...data }
           : { text: "New idea", ...data },
     };
 
@@ -242,6 +248,21 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     );
   }
 
+  function updateNodeData(nodeId: string, dataPatch: Record<string, unknown>) {
+    setNodes((ns) =>
+      ns.map((n) =>
+        n.id === nodeId
+          ? { ...n, data: { ...(n.data as Record<string, unknown>), ...dataPatch } }
+          : n,
+      ),
+    );
+  }
+
+  function getNodeText(nodeId: string): string {
+    const node = nodes.find((n) => n.id === nodeId);
+    return String((node?.data as { text?: unknown } | undefined)?.text ?? "");
+  }
+
   function deleteNode(nodeId: string) {
     setSelectedNodeId((current) => (current === nodeId ? null : current));
     setNodes((ns) => ns.filter((n) => n.id !== nodeId));
@@ -252,6 +273,50 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
   function deleteEdgeById(edgeId: string) {
     setEdges((es) => es.filter((e) => e.id !== edgeId));
+  }
+
+  function createSuggestionNode(sourceNodeId: string) {
+    const source = nodes.find((node) => node.id === sourceNodeId);
+    if (!source) return;
+
+    const existingSuggestionEdge = edges.find((edge) => {
+      if (edge.source !== sourceNodeId) return false;
+      const targetNode = nodes.find((node) => node.id === edge.target);
+      return targetNode?.type === "suggestion";
+    });
+
+    if (existingSuggestionEdge) {
+      setSelectedNodeId(existingSuggestionEdge.target);
+      return;
+    }
+
+    const suggestionId = crypto.randomUUID();
+    const suggestionNode: Node = {
+      id: suggestionId,
+      type: "suggestion",
+      position: { x: source.position.x + 280, y: source.position.y - 20 },
+      data: {
+        title: "Smart Advice",
+        text: "I will analyze the connected parent node and suggest improvements.",
+        sourceNodeId,
+        platform: "LINKEDIN",
+        lastGeneratedSourceText: "",
+      },
+    };
+
+    const suggestionEdge: Edge = {
+      id: crypto.randomUUID(),
+      source: sourceNodeId,
+      target: suggestionId,
+      type: "deletable",
+      animated: true,
+      style: { strokeDasharray: "6 4", stroke: "#8b5cf6", strokeWidth: 1.8 },
+      data: { onDelete: deleteEdgeById, suggestion: true },
+    };
+
+    setNodes((current) => [...current, suggestionNode]);
+    setEdges((current) => [...current, suggestionEdge]);
+    setSelectedNodeId(suggestionId);
   }
 
   async function generate(
@@ -426,6 +491,17 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     return (data.items as Generation[]) ?? [];
   }
 
+  async function generateSuggestion(sourceNodeId: string, platform: Platform = "LINKEDIN"): Promise<{ output: string }> {
+    const res = await fetch("/api/suggestions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mapId, sourceNodeId, platform }),
+    });
+    const data = (await res.json().catch(() => null)) as { output?: string; error?: string } | null;
+    if (!res.ok) throw new Error(data?.error ?? "Suggestion generation failed.");
+    return { output: data?.output ?? "" };
+  }
+
   if (loadError) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
@@ -455,10 +531,14 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         selectedNodeId,
         setSelectedNodeId,
         updateNodeText,
+        updateNodeData,
+        getNodeText,
         addChildNode: addChildNodeById,
         addRootNode,
+        createSuggestionNode,
         deleteNode,
         generate,
+        generateSuggestion,
         listGenerations,
       }}
     >

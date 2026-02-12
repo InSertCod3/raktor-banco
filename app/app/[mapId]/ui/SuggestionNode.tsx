@@ -1,0 +1,117 @@
+'use client';
+
+import React from 'react';
+import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { useMindMap, type Platform } from './MindMapContext';
+
+type SuggestionNodeData = {
+  title?: string;
+  text?: string;
+  sourceNodeId?: string;
+  platform?: Platform;
+  lastGeneratedSourceText?: string;
+  lastGeneratedAt?: string;
+};
+
+type SuggestionNodeType = Node<SuggestionNodeData, 'suggestion'>;
+
+function platformLabel(platform: Platform) {
+  if (platform === 'LINKEDIN') return 'LinkedIn';
+  if (platform === 'FACEBOOK') return 'Facebook';
+  return 'Instagram';
+}
+
+export default function SuggestionNode({ id, data, selected }: NodeProps<SuggestionNodeType>) {
+  const mindmap = useMindMap();
+  const isFocused = selected || mindmap.selectedNodeId === id;
+  const [isGenerating, setIsGenerating] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const hasAutoTriggeredRef = React.useRef(false);
+
+  const sourceNodeId = data?.sourceNodeId;
+  const platform: Platform = data?.platform ?? 'LINKEDIN';
+  const sourceText = sourceNodeId ? mindmap.getNodeText(sourceNodeId).trim() : '';
+  const lastGeneratedSourceText = String(data?.lastGeneratedSourceText ?? '').trim();
+  const hasSourceChanged = !!sourceText && sourceText !== lastGeneratedSourceText;
+  const canGenerate = !isGenerating && !!sourceNodeId && hasSourceChanged;
+
+  const runGenerate = React.useCallback(async () => {
+    if (!sourceNodeId) return;
+    const currentSourceText = mindmap.getNodeText(sourceNodeId).trim();
+    if (!currentSourceText) {
+      setError('Add text to the source node before generating.');
+      return;
+    }
+
+    setError(null);
+    setIsGenerating(true);
+    try {
+      const result = await mindmap.generateSuggestion(sourceNodeId, platform);
+      mindmap.updateNodeData(id, {
+        text: result.output,
+        lastGeneratedSourceText: currentSourceText,
+        lastGeneratedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Generation failed.');
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [id, mindmap, platform, sourceNodeId]);
+
+  React.useEffect(() => {
+    if (hasAutoTriggeredRef.current) return;
+    if (!sourceNodeId) return;
+    if (!sourceText) return;
+    if (lastGeneratedSourceText) return;
+
+    hasAutoTriggeredRef.current = true;
+    void runGenerate();
+  }, [lastGeneratedSourceText, runGenerate, sourceNodeId, sourceText]);
+
+  return (
+    <div
+      className={[
+        'w-[320px] rounded-2xl border border-violet-300 bg-gradient-to-br from-violet-50 to-indigo-50 p-4 shadow-1',
+        isFocused ? 'ring-2 ring-violet-300/40' : '',
+      ].join(' ')}
+      onMouseDown={() => mindmap.setSelectedNodeId(id)}
+    >
+      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-violet-500" />
+      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-violet-500" />
+
+      <div className="mb-2 flex items-center gap-2 text-violet-700">
+        <FontAwesomeIcon icon={faWandMagicSparkles} />
+        <span className="text-xs font-semibold uppercase tracking-[0.08em]">Suggestion</span>
+        <button
+          type="button"
+          className="nodrag ml-auto flex h-5 w-5 items-center justify-center rounded bg-white/70 text-[11px] text-violet-700 hover:bg-white"
+          onClick={() => mindmap.deleteNode(id)}
+          aria-label="Delete suggestion"
+        >
+          X
+        </button>
+      </div>
+      <div className="text-sm font-semibold text-dark">{data?.title || 'Generation Suggestion'}</div>
+      <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-body-color">
+        {data?.text || `Auto-generates advice for ${platformLabel(platform)} from the connected source node.`}
+      </p>
+
+      <button
+        type="button"
+        onClick={() => void runGenerate()}
+        disabled={!canGenerate}
+        className="mt-3 w-full rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-violet-300"
+      >
+        {isGenerating ? `Generating ${platformLabel(platform)}...` : `Generate ${platformLabel(platform)}`}
+      </button>
+
+      {!hasSourceChanged && !isGenerating ? (
+        <p className="mt-2 text-[11px] text-body-color">Button unlocks when source text changes.</p>
+      ) : null}
+      {error ? <p className="mt-2 text-[11px] text-red-600">{error}</p> : null}
+    </div>
+  );
+}
