@@ -17,6 +17,98 @@ type SuggestionNodeData = {
 
 type SuggestionNodeType = Node<SuggestionNodeData, 'suggestion'>;
 
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function renderInlineMarkdown(line: string): string {
+  return line
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/`(.+?)`/g, '<code>$1</code>');
+}
+
+function markdownToHtml(markdown: string): string {
+  const lines = markdown.split(/\r?\n/);
+  const output: string[] = [];
+  let inUl = false;
+  let inOl = false;
+
+  const closeLists = () => {
+    if (inUl) {
+      output.push('</ul>');
+      inUl = false;
+    }
+    if (inOl) {
+      output.push('</ol>');
+      inOl = false;
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      closeLists();
+      continue;
+    }
+
+    const safeLine = renderInlineMarkdown(escapeHtml(line));
+
+    if (line.startsWith('### ')) {
+      closeLists();
+      output.push(`<h3>${safeLine.slice(4)}</h3>`);
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      closeLists();
+      output.push(`<h2>${safeLine.slice(3)}</h2>`);
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      closeLists();
+      output.push(`<h1>${safeLine.slice(2)}</h1>`);
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(line)) {
+      if (inOl) {
+        output.push('</ol>');
+        inOl = false;
+      }
+      if (!inUl) {
+        output.push('<ul>');
+        inUl = true;
+      }
+      output.push(`<li>${safeLine.replace(/^[-*]\s+/, '')}</li>`);
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      if (inUl) {
+        output.push('</ul>');
+        inUl = false;
+      }
+      if (!inOl) {
+        output.push('<ol>');
+        inOl = true;
+      }
+      output.push(`<li>${safeLine.replace(/^\d+\.\s+/, '')}</li>`);
+      continue;
+    }
+
+    closeLists();
+    output.push(`<p>${safeLine}</p>`);
+  }
+
+  closeLists();
+  return output.join('');
+}
+
 function platformLabel(platform: Platform) {
   if (platform === 'LINKEDIN') return 'LinkedIn';
   if (platform === 'FACEBOOK') return 'Facebook';
@@ -36,6 +128,7 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
   const lastGeneratedSourceText = String(data?.lastGeneratedSourceText ?? '').trim();
   const hasSourceChanged = !!sourceText && sourceText !== lastGeneratedSourceText;
   const canGenerate = !isGenerating && !!sourceNodeId && hasSourceChanged;
+  const suggestionText = data?.text || `Auto-generates advice for ${platformLabel(platform)} from the connected source node.`;
 
   const runGenerate = React.useCallback(async () => {
     if (!sourceNodeId) return;
@@ -95,9 +188,10 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
         </button>
       </div>
       <div className="text-sm font-semibold text-dark">{data?.title || 'Generation Suggestion'}</div>
-      <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-body-color">
-        {data?.text || `Auto-generates advice for ${platformLabel(platform)} from the connected source node.`}
-      </p>
+      <div
+        className="mt-2 text-xs leading-5 text-black [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-[12px] [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-1 [&_code]:rounded [&_code]:bg-violet-100/70 [&_code]:px-1 [&_code]:py-0.5 [&_strong]:font-semibold [&_em]:italic"
+        dangerouslySetInnerHTML={{ __html: markdownToHtml(suggestionText) }}
+      />
 
       <button
         type="button"
