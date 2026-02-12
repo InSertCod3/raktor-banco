@@ -5,6 +5,7 @@ import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
 import { buildPlatformPrompt } from '@/app/lib/prompts';
+import { generateId } from '@/app/lib/utils';
 
 const GenerateSchema = z.object({
   mapId: z.string().min(1),
@@ -149,8 +150,8 @@ export async function POST(req: Request) {
       )
     : null;
 
-  const socialNodeId = socialNode?.id ?? targetSocialNodeId ?? crypto.randomUUID();
-  const socialEdgeId = existingSocialEdge?.id ?? crypto.randomUUID();
+  const socialNodeId = socialNode?.id ?? targetSocialNodeId ?? generateId(24);
+  const socialEdgeId = existingSocialEdge?.id ?? generateId(24);
   const socialLabel =
     platform === 'LINKEDIN' ? 'LinkedIn' : platform === 'FACEBOOK' ? 'Facebook' : 'Instagram';
   const [savedSocialNode, savedSocialEdge] = await prisma.$transaction([

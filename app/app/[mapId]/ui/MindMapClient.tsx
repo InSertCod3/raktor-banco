@@ -14,13 +14,14 @@ import {
   type Node,
 } from "@xyflow/react";
 import toast from "react-hot-toast";
-
+import { generateId } from "@/app/lib/utils";
 import IdeaNode from "./IdeaNode";
 import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
 import SuggestionNode from "./SuggestionNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
+import { REACT_FLOW_PANE_BACKGROUND } from "./constant";
 import {
   MindMapContext,
   type Generation,
@@ -36,6 +37,10 @@ type MapResponse = {
     edges: Edge[];
   };
 };
+
+function createId(): string {
+  return generateId(24);
+}
 
 export default function MindMapClient({ mapId }: { mapId: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -174,7 +179,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       addEdge(
         {
           ...conn,
-          id: crypto.randomUUID(),
+          id: createId(),
           type: "deletable",
           data: { onDelete: deleteEdgeById },
         },
@@ -191,7 +196,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     const parent = nodes.find((n) => n.id === parentNodeId) ?? nodes[0];
     if (!parent) return;
 
-    const id = crypto.randomUUID();
+    const id = createId();
     const childType: NodeType = type;
     const child: Node = {
       id,
@@ -210,7 +215,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     setEdges((es) => [
       ...es,
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         source: parent.id,
         target: id,
         type: "deletable",
@@ -221,7 +226,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   }
 
   function addRootNode(type: NodeType, data?: Record<string, unknown>) {
-    const id = crypto.randomUUID();
+    const id = createId();
     const offset = nodes.length * 40;
     const node: Node = {
       id,
@@ -290,7 +295,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       return;
     }
 
-    const suggestionId = crypto.randomUUID();
+    const suggestionId = createId();
     const suggestionNode: Node = {
       id: suggestionId,
       type: "suggestion",
@@ -304,7 +309,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     };
 
     const suggestionEdge: Edge = {
-      id: crypto.randomUUID(),
+      id: createId(),
       source: sourceNodeId,
       target: suggestionId,
       type: "deletable",
@@ -624,6 +629,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          style={{ backgroundColor: REACT_FLOW_PANE_BACKGROUND }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

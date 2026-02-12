@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import crypto from 'node:crypto';
+import { generateId } from '@/app/lib/utils';
 
 const ANON_COOKIE = 'mm_anon';
 
@@ -21,7 +21,7 @@ export async function getOrCreateAnonKey(): Promise<string> {
   const existing = jar.get(ANON_COOKIE)?.value;
   if (existing) return existing;
 
-  const anonKey = crypto.randomUUID();
+  const anonKey = generateId(24);
   jar.set(ANON_COOKIE, anonKey, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -31,5 +31,4 @@ export async function getOrCreateAnonKey(): Promise<string> {
   });
   return anonKey;
 }
-
 

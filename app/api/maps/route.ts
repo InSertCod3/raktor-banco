@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import crypto from 'node:crypto';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
+import { generateId } from '@/app/lib/utils';
 import { z } from 'zod';
 
 const CreateMapSchema = z.object({
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
       title: input.data.title ?? 'Untitled map',
       nodes: {
         create: {
-          id: crypto.randomUUID(),
+          id: generateId(24),
           type: 'idea',
           positionX: 0,
           positionY: 0,

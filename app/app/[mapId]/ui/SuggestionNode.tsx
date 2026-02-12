@@ -177,7 +177,7 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
     >
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-violet-500" />
-      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-violet-500" />
+      {/* <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-violet-500" /> */}
 
       <div className="mb-2 flex items-center gap-2 text-violet-700">
         <FontAwesomeIcon icon={faWandMagicSparkles} />
