@@ -36,16 +36,25 @@ export default function NodeCreationSidebar() {
             </h3>
             <p className="mt-1 text-xs text-body-color">Create nodes fast</p>
           </div>
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-amber-100" />
+          <div className="h-10 w-10 rounded-full border-2 border-white">
+            <span className="relative inline-block">
+    <img
+    className="h-10 w-10 rounded-full"
+  src="https://api.dicebear.com/9.x/bottts/svg?seed=Wyatt"
+  alt="avatar" />
+    <span className="absolute animate-pulse top-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+</span>
+          </div>
+
         </div>
         <div className="px-4 pb-4">
           <button
             data-tooltip-id="side-bar-tooltip"
             data-tooltip-content="Create an Idea Node that can generate social content."
-            className="group flex w-full items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-3 text-left transition hover:from-amber-100 hover:to-white"
+            className="group flex w-full items-center gap-3 rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white px-3 py-3 text-left transition hover:from-emerald-100 hover:to-white"
             onClick={() => handleCreate("idea")}
           >
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-200/70 text-amber-700 shadow-sm">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-200/70 text-emerald-700 shadow-sm">
               <FontAwesomeIcon icon={faLightbulb} />
             </span>
             <span className="flex flex-col">

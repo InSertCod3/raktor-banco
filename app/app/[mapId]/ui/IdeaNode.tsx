@@ -23,16 +23,19 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
   return (
     <div
       className={[
-        'min-w-[430px] max-w-[340px] rounded-xl border bg-white p-3 shadow-1',
-        isFocused ? 'border-primary ring-2 ring-primary/20' : 'border-stroke',
+        'w-[360px] rounded-2xl border p-4 shadow-1',
+        isFocused ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-300/30' : 'border-stroke bg-white',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
     >
-      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-primary" />
-      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-primary" />
+      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-emerald-500" />
+      <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-emerald-500" />
 
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-xs font-semibold text-dark">Idea</div>
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">Idea Node</div>
+          <div className="text-sm font-semibold text-dark">Core Thought</div>
+        </div>
         <button
           type="button"
           className="nodrag rounded-md bg-red-500 px-2 py-1 text-[11px] text-white hover:bg-red-6"
@@ -55,22 +58,15 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
         value={String(data?.text ?? '')}
         onChange={(e) => mindmap.updateNodeText(id, e.target.value)}
         onFocus={() => mindmap.setSelectedNodeId(id)}
-        rows={4}
+        rows={5}
         placeholder="Write the idea..."
-        className="nodrag mt-2 h-36 w-full rounded-lg border border-stroke bg-transparent p-2 text-sm text-dark outline-hidden focus:border-primary"
+        className="nodrag h-40 w-full rounded-xl border border-emerald-200 bg-white/90 p-3 text-sm text-dark outline-hidden placeholder:text-body-color focus:border-emerald-400"
       />
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3">
         <button
           type="button"
-          className="nodrag rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-dark"
-          onClick={() => mindmap.addChildNode(id, 'idea')}
-        >
-          Create Idea
-        </button>
-        <button
-          type="button"
-          className="nodrag rounded-md border border-stroke bg-white px-2.5 py-1.5 text-xs font-medium text-dark hover:bg-gray-1"
+          className="nodrag w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
           onClick={() => mindmap.addChildNode(id, 'social', { label: 'LinkedIn', platform: 'LINKEDIN' })}
         >
           Create Social
