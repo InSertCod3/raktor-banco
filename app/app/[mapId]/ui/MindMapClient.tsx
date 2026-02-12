@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 
 import IdeaNode from "./IdeaNode";
+import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
@@ -53,6 +54,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     () => ({
       idea: IdeaNode,
       social: SocialNode,
+      notepad: NodePadNode,
     }),
     [],
   );
@@ -193,9 +195,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       id,
       type: childType,
       position: { x: parent.position.x + 240, y: parent.position.y + 80 },
-      data:
-        childType === "social"
-          ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
+      data: childType === "social"
+        ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
+        : childType === "notepad"
+          ? { text: "Personal idea...", ...data }
           : { text: "New idea", ...data },
     };
 
@@ -220,9 +223,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       id,
       type,
       position: { x: offset, y: offset },
-      data:
-        type === "social"
-          ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
+      data: type === "social"
+        ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
+        : type === "notepad"
+          ? { text: "Personal idea...", ...data }
           : { text: "New idea", ...data },
     };
 

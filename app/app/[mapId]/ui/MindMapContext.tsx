@@ -13,7 +13,7 @@ export type Generation = {
   model: string;
 };
 
-export type NodeType = 'idea' | 'social';
+export type NodeType = 'idea' | 'social' | 'notepad';
 
 export type MindMapContextValue = {
   mapId: string;

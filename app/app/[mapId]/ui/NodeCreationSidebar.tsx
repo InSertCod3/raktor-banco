@@ -3,7 +3,7 @@
 import React from "react";
 import { useMindMap, type NodeType } from "./MindMapContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faLightbulb, faSignsPost } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faLightbulb, faSignsPost } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from 'react-tooltip'
 
 export default function NodeCreationSidebar() {
@@ -38,12 +38,12 @@ export default function NodeCreationSidebar() {
           </div>
           <div className="h-10 w-10 rounded-full border-2 border-white">
             <span className="relative inline-block">
-    <img
-    className="h-10 w-10 rounded-full"
-  src="https://api.dicebear.com/9.x/bottts/svg?seed=Wyatt"
-  alt="avatar" />
-    <span className="absolute animate-pulse top-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
-</span>
+              <img
+              className="h-10 w-10 rounded-full"
+            src="https://api.dicebear.com/9.x/bottts/svg?seed=Wyatt"
+            alt="avatar" />
+              <span className="absolute animate-pulse top-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></span>
+          </span>
           </div>
 
         </div>
@@ -65,6 +65,8 @@ export default function NodeCreationSidebar() {
 
           <button
             className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-3 text-left transition hover:from-blue-100 hover:to-white"
+            data-tooltip-id="side-bar-tooltip"
+            data-tooltip-content="Create a Social Node for platform-specific generated posts."
             onClick={() => handleCreate("social")}
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-200/70 text-blue-700 shadow-sm">
@@ -73,6 +75,21 @@ export default function NodeCreationSidebar() {
             <span className="flex flex-col">
               <span className="text-sm font-semibold text-dark">Social Node</span>
               <span className="text-xs text-body-color">Attach generated copy</span>
+            </span>
+          </button>
+
+          <button
+            className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-lime-200 bg-gradient-to-br from-lime-50 to-white px-3 py-3 text-left transition hover:from-lime-100 hover:to-white"
+            data-tooltip-id="side-bar-tooltip"
+            data-tooltip-content="Create a NodePad for personal ideas and private notes."
+            onClick={() => handleCreate("notepad")}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-lime-200/70 text-lime-700 shadow-sm">
+              <FontAwesomeIcon icon={faBookOpen} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-dark">NodePad</span>
+              <span className="text-xs text-body-color">Save personal ideas</span>
             </span>
           </button>
         </div>
