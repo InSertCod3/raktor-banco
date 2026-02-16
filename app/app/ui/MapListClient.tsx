@@ -17,6 +17,99 @@ interface MapListClientProps {
 
 const MAX_MAP_TITLE = 120;
 
+type GradientTheme = {
+  name: 'dawn' | 'glacier' | 'ember' | 'retro' | 'galaxy' | 'mintpaper';
+  build: (p: {
+    angle: number;
+    c1: string;
+    c2: string;
+    c3: string;
+    c4: string;
+  }) => React.CSSProperties;
+};
+
+const getMindMapGradientStyle = (id: string): React.CSSProperties => {
+  let seed = 7;
+  for (let i = 0; i < id.length; i++) {
+    seed = (seed * 31 + id.charCodeAt(i)) >>> 0;
+  }
+
+  const themeSeeds = [
+    { base: 28, spreadA: 30, spreadB: 70 }, // dawn
+    { base: 198, spreadA: 24, spreadB: 60 }, // glacier
+    { base: 8, spreadA: 36, spreadB: 90 }, // ember
+    { base: 248, spreadA: 22, spreadB: 55 }, // retro
+    { base: 292, spreadA: 34, spreadB: 95 }, // galaxy
+    { base: 150, spreadA: 18, spreadB: 42 }, // mintpaper
+  ];
+
+  const themeSeed = themeSeeds[seed % themeSeeds.length];
+  const angle = seed % 360;
+  const isMono = themeSeed.base === 0;
+
+  const hueA = isMono ? 0 : (themeSeed.base + (seed % themeSeed.spreadA)) % 360;
+  const hueB = isMono ? 0 : (hueA + themeSeed.spreadA + ((seed >> 3) % themeSeed.spreadB)) % 360;
+  const hueC = isMono ? 0 : (hueA + themeSeed.spreadB + ((seed >> 5) % 110)) % 360;
+  const hueD = isMono ? 0 : (hueB + 30 + ((seed >> 7) % 80)) % 360;
+
+  const satA = isMono ? 0 : 58 + (seed % 20);
+  const satB = isMono ? 0 : 52 + ((seed >> 3) % 24);
+  const satC = isMono ? 0 : 60 + ((seed >> 5) % 18);
+  const satD = isMono ? 0 : 48 + ((seed >> 7) % 28);
+
+  const lightA = 52 + ((seed >> 5) % 12);
+  const lightB = 48 + ((seed >> 7) % 14);
+  const lightC = 56 + ((seed >> 9) % 10);
+  const lightD = 46 + ((seed >> 11) % 16);
+
+  const c1 = `hsla(${hueA}, ${satA}%, ${lightA}%, 0.28)`;
+  const c2 = `hsla(${hueB}, ${satB}%, ${lightB}%, 0.22)`;
+  const c3 = `hsla(${hueC}, ${satC}%, ${lightC}%, 0.2)`;
+  const c4 = `hsla(${hueD}, ${satD}%, ${lightD}%, 0.18)`;
+
+  const themeMap: GradientTheme[] = [
+    {
+      name: 'dawn',
+      build: ({ angle, c1, c2, c4 }) => ({
+        backgroundImage: `radial-gradient(circle at 18% 20%, ${c1}, transparent 52%), radial-gradient(circle at 84% 78%, ${c2}, transparent 56%), linear-gradient(${(angle + 18) % 360}deg, ${c4}, transparent 68%)`,
+      }),
+    },
+    {
+      name: 'glacier',
+      build: ({ angle, c1, c2, c3 }) => ({
+        backgroundImage: `linear-gradient(${(angle + 140) % 360}deg, ${c3}, transparent 66%), repeating-linear-gradient(${(angle + 35) % 360}deg, ${c1} 0 11px, transparent 11px 22px), radial-gradient(circle at 72% 30%, ${c2}, transparent 54%)`,
+      }),
+    },
+    {
+      name: 'ember',
+      build: ({ angle, c1, c2, c3 }) => ({
+        backgroundImage: `linear-gradient(${(angle + 190) % 360}deg, ${c1}, ${c3}), radial-gradient(circle at 78% 26%, ${c2}, transparent 48%), radial-gradient(circle at 24% 82%, ${c3}, transparent 58%)`,
+      }),
+    },
+    {
+      name: 'retro',
+      build: ({ angle, c1, c2, c4 }) => ({
+        backgroundImage: `conic-gradient(from ${(angle + 65) % 360}deg at 62% 44%, ${c1}, ${c2}, ${c4}, ${c1}), linear-gradient(${(angle + 210) % 360}deg, transparent 35%, ${c2})`,
+      }),
+    },
+    {
+      name: 'galaxy',
+      build: ({ angle, c1, c2, c3, c4 }) => ({
+        backgroundImage: `radial-gradient(circle at 20% 24%, ${c1}, transparent 46%), radial-gradient(circle at 76% 72%, ${c2}, transparent 50%), conic-gradient(from ${(angle + 250) % 360}deg at 50% 50%, ${c4}, ${c3}, ${c4})`,
+      }),
+    },
+    {
+      name: 'mintpaper',
+      build: ({ angle, c1, c2, c3 }) => ({
+        backgroundImage: `repeating-linear-gradient(${(angle + 8) % 360}deg, ${c1} 0 10px, transparent 10px 20px), radial-gradient(circle at 68% 26%, ${c2}, transparent 52%), linear-gradient(${(angle + 175) % 360}deg, ${c3}, ${c2})`,
+      }),
+    },
+  ];
+
+  const theme = themeMap[seed % themeMap.length];
+  return theme.build({ angle, c1, c2, c3, c4 });
+};
+
 export default function MapListClient({ initialMaps }: MapListClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -267,14 +360,14 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
         <button
           type="button"
           onClick={openCreateModal}
-          className="group rounded-2xl border border-dashed border-primary/40 bg-white/80 p-6 shadow-1 backdrop-blur transition hover:border-primary hover:bg-white"
+          className="group rounded-2xl border border-dashed border-primary/40 bg-white/80 p-6 shadow-1 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-white hover:shadow-xl"
         >
           <div className="text-sm font-semibold text-dark">Start a new map</div>
           <p className="mt-2 text-sm text-body-color">
             Create a central idea, branch out, and generate posts node-by-node.
           </p>
           <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-            Create map <span className="transition group-hover:translate-x-0.5">→</span>
+            Create map <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
           </div>
         </button>
 
@@ -282,7 +375,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
           <div key={m.id} className="group relative">
             <Link
               href={`/app/${m.id}`}
-              className="block h-full rounded-2xl border border-stroke bg-white/80 p-6 shadow-1 backdrop-blur transition hover:border-primary hover:bg-white"
+              className="block h-full rounded-2xl border border-stroke bg-white/80 p-6 shadow-1 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-white hover:shadow-xl"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -294,14 +387,18 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
                 <div className="text-xs font-semibold text-primary">Open</div>
               </div>
 
-              <div className="mt-5 h-20 rounded-xl border border-stroke bg-gray-1">
-                <div className="h-full w-full rounded-xl bg-[radial-gradient(circle_at_20%_30%,rgba(55,88,249,0.15),transparent_60%),radial-gradient(circle_at_70%_70%,rgba(19,194,150,0.14),transparent_55%)]" />
+              <div className="relative mt-5 h-20 overflow-hidden rounded-xl border border-stroke bg-gray-1">
+                <div
+                  className="h-full w-full rounded-xl transition-transform duration-700 ease-out group-hover:scale-110"
+                  style={getMindMapGradientStyle(m.id)}
+                />
+                <div className="pointer-events-none absolute inset-0 translate-x-[-120%] bg-[linear-gradient(120deg,transparent_35%,rgba(255,255,255,0.38)_50%,transparent_65%)] transition-transform duration-1000 ease-out group-hover:translate-x-[120%]" />
               </div>
             </Link>
             
             <button
               onClick={(e) => handleDeleteClick(e, m.id, m.title)}
-              className="absolute bottom-4 right-4 rounded-lg bg-white p-2 text-body-color shadow-md border border-stroke opacity-0 group-hover:opacity-100 transition hover:text-red-500 hover:border-red-200"
+              className="absolute bottom-4 right-4 translate-y-1 rounded-lg border border-stroke bg-white p-2 text-body-color opacity-0 shadow-md transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 hover:border-red-200 hover:text-red-500"
               title="Delete map"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -327,14 +424,14 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
       {isCreateModalOpen ? (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/55 backdrop-blur-md animate-in fade-in duration-200">
           <div className="relative w-full max-w-lg overflow-hidden rounded-2xl border border-stroke bg-white shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-            <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
-            <div className="pointer-events-none absolute -right-16 -bottom-16 h-40 w-40 rounded-full bg-amber-200/30 blur-3xl" />
+            <div className="pointer-events-none absolute -left-16 -top-16 h-40 w-40 rounded-full bg-primary/10 blur-3xl animate-pulse" />
+            <div className="pointer-events-none absolute -right-16 -bottom-16 h-40 w-40 rounded-full bg-amber-200/30 blur-3xl animate-pulse" style={{ animationDelay: '350ms' }} />
             <div className="relative flex items-center justify-center gap-2 border-b border-stroke/70 px-6 py-4">
               {[0, 1].map((idx) => (
                 <span
                   key={idx}
                   className={`h-2.5 rounded-full transition-all duration-300 ${
-                    idx === createStepIndex ? 'w-7 bg-primary' : 'w-2.5 bg-dark/20'
+                    idx === createStepIndex ? 'w-7 bg-primary shadow-sm shadow-primary/40' : 'w-2.5 bg-dark/20'
                   }`}
                 />
               ))}

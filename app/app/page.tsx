@@ -36,6 +36,17 @@ export default async function MindAppHome({
     dbError = 'Set DATABASE_URL and run npm run prisma:migrate to enable saving and loading maps.';
   }
 
+  const hasMaps = maps.length > 0;
+  const mapsUpdatedLast7Days = maps.filter((m) => {
+    const updated = new Date(m.updatedAt).getTime();
+    return updated >= Date.now() - 7 * 24 * 60 * 60 * 1000;
+  }).length;
+  const latestMapUpdate = hasMaps ? new Date(maps[0].updatedAt) : null;
+  const latestMapUpdateLabel = latestMapUpdate
+    ? latestMapUpdate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    : 'No edits yet';
+  const currentPlanLabel = 'Free';
+
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#f6f5f1] font-['Space_Grotesk']">
       <BackgroundGrid strokeColor="rgba(9, 14, 52, 0.08)" gridSize={84} strokeWidth={1} />
@@ -43,69 +54,87 @@ export default async function MindAppHome({
       <div className="pointer-events-none absolute -left-20 top-12 h-64 w-64 rounded-full bg-amber-200/40 blur-3xl" />
       <div className="pointer-events-none absolute right-0 top-40 h-80 w-80 rounded-full bg-blue-200/40 blur-3xl" />
 
-      <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" className="text-xs font-semibold uppercase tracking-[0.28em] text-body-color">
+      <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-8 sm:px-6 sm:pt-10">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link href="/" className="text-xs font-semibold uppercase tracking-[0.28em] text-body-color transition hover:text-dark">
             Back to landing
           </Link>
-          <div className="flex items-center gap-3 text-xs text-body-color">
-            <span className="rounded-full border border-stroke bg-white/70 px-3 py-1">
-              {dbError ? 'Offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-body-color">
+            <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">
+              {dbError ? 'Database offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
             </span>
+            <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">LinkedIn + Facebook</span>
             <Link
               href="/app?create=1"
-              className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 hover:bg-dark-2"
+              className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 transition hover:bg-dark-2"
             >
               New map
             </Link>
           </div>
         </div>
 
-        <div className="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-dark/10 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-dark">
+        <section className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
+          <div className="rounded-3xl border border-dark/10 bg-white/75 p-6 shadow-2 backdrop-blur sm:p-8">
+            <div className="inline-flex items-center gap-2 rounded-full border border-dark/10 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-dark">
               Visual-first ideation
             </div>
-            <h1 className="mt-5 text-4xl font-semibold text-dark sm:text-5xl">
-              Mind Mapper turns ideas into share-ready content.
+            <h1 className="mt-5 max-w-2xl text-4xl font-semibold leading-tight text-dark sm:text-5xl">
+              Build once in the map, then generate post drafts where ideas happen.
             </h1>
-            <p className="mt-4 max-w-[560px] text-base text-body-color">
-              Build a map around one thought, branch into supporting ideas, then generate LinkedIn and Facebook drafts
-              from any node without leaving the flow.
+            <p className="mt-4 max-w-[620px] text-base text-body-color">
+              Start with one core idea, expand into branches, and generate concise LinkedIn, Facebook and Instagram content from any
+              node without leaving your visual workflow.
             </p>
+
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
                 href="/app?create=1"
-                className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-2 hover:bg-blue-dark"
+                className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-2 transition hover:bg-blue-dark"
               >
                 Start a new map
               </Link>
-              <div className="text-xs text-body-color">
-                <span className="font-semibold text-dark">Tip:</span> click a node to edit or generate.
-              </div>
+              <span className="rounded-full border border-stroke bg-white px-4 py-2 text-xs font-medium text-body-color">
+                Tip: click a node to edit or regenerate
+              </span>
             </div>
           </div>
 
-          <div className="grid gap-4 rounded-3xl border border-dark/10 bg-white/80 p-5 shadow-2 backdrop-blur">
+          <div className="grid gap-4 rounded-3xl border border-dark/10 bg-white/85 p-5 shadow-2 backdrop-blur sm:p-6">
             <div className="flex items-start justify-between">
               <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-body-color">Quick actions</div>
-                <div className="mt-2 text-lg font-semibold text-dark">Create, connect, publish.</div>
+                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-body-color">Start From Your Map</div>
+                <div className="mt-2 text-lg font-semibold text-dark">Account snapshot</div>
               </div>
               <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-200 to-amber-200" />
             </div>
-            <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
-                <div className="text-sm font-semibold text-dark">Idea → Social in minutes</div>
-                <div className="mt-1 text-xs text-body-color">Generate copy and keep it attached to the idea node.</div>
+                <div className="text-xs uppercase tracking-[0.14em] text-body-color">Total maps</div>
+                <div className="mt-1 text-xl font-semibold text-dark">{maps.length}</div>
               </div>
               <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
-                <div className="text-sm font-semibold text-dark">Reusable idea graphs</div>
-                <div className="mt-1 text-xs text-body-color">Return to any map and regenerate variations.</div>
+                <div className="text-xs uppercase tracking-[0.14em] text-body-color">Updated (7d)</div>
+                <div className="mt-1 text-xl font-semibold text-dark">{mapsUpdatedLast7Days}</div>
+              </div>
+            </div>
+            <div className="grid gap-3">
+              <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
+                <div className="text-xs uppercase tracking-[0.14em] text-body-color">Current plan</div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-dark">{currentPlanLabel}</div>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                    Active
+                  </span>
+                </div>
+                <div className="mt-2 text-xs text-body-color">Includes core map creation and LinkedIn/Facebook/Instagram generation.</div>
+              </div>
+              <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
+                <div className="text-xs uppercase tracking-[0.14em] text-body-color">Last activity</div>
+                <div className="mt-1 text-sm font-semibold text-dark">{latestMapUpdateLabel}</div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {createFailed ? (
           <div className="mt-8 rounded-2xl border border-red-200 bg-red-50/60 p-4 text-sm text-dark">
@@ -133,12 +162,21 @@ export default async function MindAppHome({
           </div>
         ) : (
           <div className="mt-10">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-body-color">Your maps</div>
                 <div className="mt-2 text-lg font-semibold text-dark">Recent work</div>
               </div>
+              <div className="text-xs text-body-color">
+                {hasMaps ? `Showing ${maps.length} map${maps.length === 1 ? '' : 's'}` : 'No maps yet. Create your first one to begin.'}
+              </div>
             </div>
+            {!hasMaps ? (
+              <div className="mb-4 rounded-2xl border border-dashed border-primary/40 bg-white/75 p-4 text-sm text-body-color">
+                Build your first map around a central idea, then branch into supporting thoughts and generate drafts per
+                node.
+              </div>
+            ) : null}
             <MapListClient initialMaps={maps} />
           </div>
         )}

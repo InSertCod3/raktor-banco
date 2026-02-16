@@ -83,7 +83,7 @@ export default function LoginPage() {
             <ul className="mt-4 space-y-3 text-sm text-[#5f6861]">
               {[
                 'Visual maps that keep content strategy structured.',
-                'Node-level LinkedIn and Facebook generation.',
+                'Node-level LinkedIn, Facebook and Instagram generation.',
                 'Regeneration history without losing context.',
                 'Reusable maps for ongoing campaigns.',
               ].map((item) => (

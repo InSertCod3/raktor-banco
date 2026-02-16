@@ -38,7 +38,7 @@ export default function Home() {
             </h1>
             <p className="mt-5 max-w-[640px] text-base text-[#5f6861] sm:text-lg">
               Mind Mapper helps founders, marketers, and builders move from one core idea to structured content in a
-              single workspace. Map your thinking, generate LinkedIn and Facebook drafts per node, and keep every post
+              single workspace. Map your thinking, generate LinkedIn, Facebook and Instagram drafts per node, and keep every post
               connected to its source context.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -63,7 +63,7 @@ export default function Home() {
               {[
                 'Create a central idea node in seconds',
                 'Expand branches visually with connected context',
-                'Generate LinkedIn and Facebook drafts per node',
+                'Generate LinkedIn, Facebook, and Instagram drafts per node',
                 'Regenerate variations without losing structure',
                 'Reuse and keep editing maps over time',
               ].map((item) => (
@@ -106,7 +106,7 @@ export default function Home() {
             {[
               ['01', 'Capture the core idea', 'Start from one central node and define the main message.'],
               ['02', 'Expand supporting branches', 'Add sub-ideas, angles, objections, and proof points visually.'],
-              ['03', 'Generate and refine content', 'Create LinkedIn and Facebook drafts and regenerate variations quickly.'],
+              ['03', 'Generate and refine content', 'Create LinkedIn, Facebook and Instagram  drafts and regenerate variations quickly.'],
             ].map(([step, title, body]) => (
               <div key={step} className="rounded-2xl border border-[#e1ddd2] bg-[#f9f8f4] p-4">
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a938b]">{step}</div>

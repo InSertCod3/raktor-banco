@@ -17,7 +17,7 @@ Agents must optimize for:
 The application allows users to:
 - Create a central idea node
 - Expand ideas visually using a mind-map (React Flow)
-- Generate platform-specific content (LinkedIn, Facebook initially)
+- Generate platform-specific content (LinkedIn, Facebook, Instagram initially)
 - Reuse idea graphs over time
 - Eventually switch between **Content Mode** and **Product Roadmap Mode**
 
@@ -42,7 +42,7 @@ Tech stack:
 - Define feature phases and exclusions
 
 **Constraints**
-- Must prioritize LinkedIn + Facebook only for MVP
+- Must prioritize LinkedIn + Facebook + Instagram only for MVP
 - Must reject features that dilute the visual mind-map experience
 
 ---
@@ -143,7 +143,7 @@ If not, it is out of scope.
 The MVP is complete when users can:
 1. Create a central idea
 2. Expand ideas visually
-3. Generate LinkedIn and Facebook posts per node
+3. Generate LinkedIn, Facebook, and Instagram posts per node
 4. Regenerate variations
 5. Reuse and edit maps over time
 
