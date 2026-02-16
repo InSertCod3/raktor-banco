@@ -53,7 +53,7 @@ export default async function MindAppHome({
               {dbError ? 'Offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
             </span>
             <Link
-              href="/app/new"
+              href="/app?create=1"
               className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 hover:bg-dark-2"
             >
               New map
@@ -75,7 +75,7 @@ export default async function MindAppHome({
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                href="/app/new"
+                href="/app?create=1"
                 className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-2 hover:bg-blue-dark"
               >
                 Start a new map
@@ -146,4 +146,3 @@ export default async function MindAppHome({
     </main>
   );
 }
-

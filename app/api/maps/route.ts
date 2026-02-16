@@ -5,7 +5,7 @@ import { generateId } from '@/app/lib/utils';
 import { z } from 'zod';
 
 const CreateMapSchema = z.object({
-  title: z.string().trim().min(1).max(120).optional(),
+  title: z.string().trim().min(1).max(120),
 });
 
 export async function GET() {
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const map = await prisma.map.create({
     data: {
       userId,
-      title: input.data.title ?? 'Untitled map',
+      title: input.data.title,
       nodes: {
         create: {
           id: generateId(24),
@@ -45,6 +45,5 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ mapId: map.id }, { status: 201 });
 }
-
 
 
