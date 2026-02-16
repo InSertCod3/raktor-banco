@@ -20,7 +20,7 @@ export default function Home() {
               Open app
             </Link>
             <Link
-              href="/app/new"
+              href="/login"
               className="rounded-full bg-[#2d3a33] px-5 py-2 font-semibold uppercase tracking-wide text-white shadow-2 hover:bg-[#243029]"
             >
               Join now
@@ -129,7 +129,7 @@ export default function Home() {
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link
-                href="/app/new"
+                href="/login"
                 className="rounded-full bg-[#a4be8c] px-6 py-3 text-sm font-semibold text-[#1f2923] hover:bg-[#95af7e]"
               >
                 Join and create a map
