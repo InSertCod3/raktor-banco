@@ -20,6 +20,7 @@ import InsightInputNode from "./InsightInputNode";
 import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
 import SuggestionNode from "./SuggestionNode";
+import ToneNode from "./ToneNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
 import { REACT_FLOW_PANE_BACKGROUND } from "./constant";
@@ -49,6 +50,7 @@ function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<s
   if (type === "suggestion") return { title: "Generation Suggestion", text: "Use this note to generate content.", ...data };
   if (type === "painpoint") return { text: "Main customer pain point...", ...data };
   if (type === "proofpoint") return { text: "Proof point, data, or example...", ...data };
+  if (type === "tone") return { tone: "Friendly", ...data };
   return { text: "New idea", ...data };
 }
 
@@ -71,6 +73,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       idea: IdeaNode,
       painpoint: InsightInputNode,
       proofpoint: InsightInputNode,
+      tone: ToneNode,
       social: SocialNode,
       notepad: NodePadNode,
       suggestion: SuggestionNode,

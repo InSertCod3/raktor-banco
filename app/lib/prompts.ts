@@ -6,6 +6,7 @@ export function buildPlatformPrompt(args: {
   contextTexts?: string[];
   painPointTexts?: string[];
   proofPointTexts?: string[];
+  toneValues?: string[];
 }): { system: string; user: string } {
   const idea = args.ideaText.trim();
   const contextTexts = (args.contextTexts ?? [])
@@ -17,6 +18,10 @@ export function buildPlatformPrompt(args: {
   const proofPointTexts = (args.proofPointTexts ?? [])
     .map((text) => text.trim())
     .filter(Boolean);
+  const toneValues = Array.from(new Set((args.toneValues ?? []).map((text) => text.trim()).filter(Boolean)));
+  const toneBlock = toneValues.length
+    ? ['', `Tone to use: ${toneValues.join(', ')}`]
+    : [];
   const painPointBlock = painPointTexts.length
     ? ['', 'Pain points to address:', ...painPointTexts.map((text, i) => `${i + 1}. ${text}`)]
     : [];
@@ -38,6 +43,7 @@ export function buildPlatformPrompt(args: {
     const user = [
       'Write a LinkedIn post based on this idea:',
       `"${idea}"`,
+      ...toneBlock,
       ...painPointBlock,
       ...proofPointBlock,
       ...contextBlock,
@@ -46,6 +52,7 @@ export function buildPlatformPrompt(args: {
       '- 900-1400 characters (aim, don’t hard-count)',
       '- Strong hook in the first 1-2 lines',
       '- Clear value and one actionable takeaway',
+      '- Respect the requested tone style',
       '- If pain/proof points are provided, directly leverage them in the post',
       '- 0-3 relevant hashtags at the end',
       '- Professional, direct tone (not salesy)',
@@ -57,6 +64,7 @@ export function buildPlatformPrompt(args: {
     const user = [
       'Write an Instagram caption based on this idea:',
       `"${idea}"`,
+      ...toneBlock,
       ...painPointBlock,
       ...proofPointBlock,
       ...contextBlock,
@@ -64,6 +72,7 @@ export function buildPlatformPrompt(args: {
       'Constraints:',
       '- 120-350 characters (aim, do not hard-count)',
       '- Strong first line and clear message',
+      '- Respect the requested tone style',
       '- If pain/proof points are provided, directly leverage them in the caption',
       '- 0-2 emojis maximum',
       '- Add 3-6 relevant hashtags at the end',
@@ -76,6 +85,7 @@ export function buildPlatformPrompt(args: {
   const user = [
     'Write a Facebook post based on this idea:',
     `"${idea}"`,
+    ...toneBlock,
     ...painPointBlock,
     ...proofPointBlock,
     ...contextBlock,
@@ -83,6 +93,7 @@ export function buildPlatformPrompt(args: {
     'Constraints:',
     '- 300-700 characters (aim, don’t hard-count)',
     '- Friendly, conversational tone',
+    '- Respect the requested tone style',
     '- If pain/proof points are provided, directly leverage them in the post',
     '- One clear question or CTA to spark comments',
     '- 0-2 emojis maximum',

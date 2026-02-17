@@ -3,7 +3,7 @@
 import React from "react";
 import { useMindMap, type NodeType } from "./MindMapContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen, faCheck, faLightbulb, faSignsPost, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faCheck, faLightbulb, faSignsPost, faTriangleExclamation, faWaveSquare } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from 'react-tooltip'
 
 export default function NodeCreationSidebar() {
@@ -120,6 +120,21 @@ export default function NodeCreationSidebar() {
             <span className="flex flex-col">
               <span className="text-sm font-semibold text-dark">Proof Point</span>
               <span className="text-xs text-body-color">Capture data and evidence</span>
+            </span>
+          </button>
+
+          <button
+            className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-3 text-left transition hover:from-amber-100 hover:to-white"
+            data-tooltip-id="side-bar-tooltip"
+            data-tooltip-content="Create a Tone Node to control the messaging style of generated output."
+            onClick={() => handleCreate("tone")}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-200/70 text-amber-700 shadow-sm">
+              <FontAwesomeIcon icon={faWaveSquare} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-dark">Tone Node</span>
+              <span className="text-xs text-body-color">Control voice and style</span>
             </span>
           </button>
         </div>

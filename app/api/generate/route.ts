@@ -144,10 +144,21 @@ export async function POST(req: Request) {
     .filter((connected) => (connected.type ?? '').toLowerCase() === 'proofpoint')
     .flatMap((connected) => collectTextValues(connected.data))
     .filter(Boolean);
+  const toneValues = Array.from(
+    new Set(
+      nonSocialConnectedNodes
+        .filter((connected) => (connected.type ?? '').toLowerCase() === 'tone')
+        .map((connected) => {
+          const value = (connected.data as { tone?: unknown } | null)?.tone;
+          return typeof value === 'string' ? value.trim() : '';
+        })
+        .filter(Boolean)
+    )
+  );
   const contextTexts = nonSocialConnectedNodes
     .filter((connected) => {
       const type = (connected.type ?? '').toLowerCase();
-      return connected.id !== ideaNode.id && type !== 'suggestion' && type !== 'painpoint' && type !== 'proofpoint';
+      return connected.id !== ideaNode.id && type !== 'suggestion' && type !== 'painpoint' && type !== 'proofpoint' && type !== 'tone';
     })
     .flatMap((connected) => collectTextValues(connected.data))
     .filter(Boolean);
@@ -158,6 +169,7 @@ export async function POST(req: Request) {
     contextTexts,
     painPointTexts,
     proofPointTexts,
+    toneValues,
   });
 
   const last = await prisma.generatedContent.findFirst({
