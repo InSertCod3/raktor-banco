@@ -97,7 +97,7 @@ export default function NodeCreationSidebar() {
   ];
 
   return (
-    <div className="fixed left-4 top-1/2 z-10 -translate-y-1/2">
+    <div className="pointer-events-none fixed left-2 right-2 top-16 z-10 sm:left-4 sm:right-auto sm:top-1/2 sm:-translate-y-1/2">
       <Tooltip
         id="side-bar-tooltip"
         place="right"
@@ -105,13 +105,13 @@ export default function NodeCreationSidebar() {
         opacity={1}
         delayShow={120}
       />
-      <div className="relative w-[320px]">
+      <div className="relative w-full sm:w-[320px]">
         {!isOpen ? (
           <button
             type="button"
             aria-label="Expand toolbar"
             onClick={() => setIsOpen(true)}
-            className="group absolute left-0 top-1/2 z-30 flex h-12 -translate-x-1/4 -translate-y-1/2 items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-3.5 text-blue-800 shadow-[0_8px_20px_rgba(15,23,42,0.16)] transition duration-200 hover:translate-x-0"
+            className="pointer-events-auto group absolute left-2 top-0 z-30 flex h-12 -translate-y-[115%] items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-3.5 text-blue-800 shadow-[0_8px_20px_rgba(15,23,42,0.16)] transition duration-200 sm:left-0 sm:top-1/2 sm:-translate-x-1/4 sm:-translate-y-1/2 sm:hover:translate-x-0"
           >
             <span className="pointer-events-none absolute inset-0 rounded-full bg-blue-200/60 opacity-0 blur-md transition duration-200 group-hover:opacity-100" />
             <FontAwesomeIcon icon={faChevronRight} className="relative text-xs transition duration-200 group-hover:scale-110" />
@@ -121,18 +121,20 @@ export default function NodeCreationSidebar() {
 
         <div
           className={[
-            "relative overflow-hidden rounded-[8px] border border-stone-200 bg-white/95 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur transition-transform duration-300 ease-out",
-            isOpen ? "translate-x-0" : "-translate-x-[calc(100%+20px)] pointer-events-none",
+            "relative flex max-h-[80dvh] flex-col overflow-hidden rounded-[8px] border border-stone-200 bg-white/95 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur transition-all duration-300 ease-out sm:max-h-[86dvh]",
+            isOpen
+              ? "translate-x-0 opacity-100 visible pointer-events-auto"
+              : "-translate-x-[calc(100%+20px)] opacity-0 invisible pointer-events-none",
           ].join(" ")}
         >
         <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-emerald-200/70 blur-3xl" />
         <div className="pointer-events-none absolute -left-12 bottom-8 h-24 w-24 rounded-full bg-orange-100/80 blur-2xl" />
 
-        <div className="relative border-b border-stone-200/80 px-5 pb-4 pt-5">
+        <div className="relative shrink-0 border-b border-stone-200/80 px-5 pb-4 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">Builder Panel</div>
-              <h3 className="mt-1 text-lg font-semibold text-[#1f2b25]">Node Toolbar</h3>
+              <h3 className="mt-1 text-lg font-semibold text-[#1f2b25]">Mind Map Tools</h3>
               <p className="mt-1 text-xs text-stone-500">Select a tool and click to add instantly.</p>
             </div>
             <div className="flex items-center gap-2">
@@ -156,7 +158,7 @@ export default function NodeCreationSidebar() {
           </div>
         </div>
 
-        <div className="relative max-h-[66vh] overflow-y-auto px-5 pb-5 pt-4">
+        <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
           <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-stone-500">Core Nodes</div>
           <div className="mt-2 space-y-2">
             {coreTools.map((tool) => (
@@ -216,6 +218,7 @@ export default function NodeCreationSidebar() {
               </button>
             ))}
           </div>
+          <div className="h-2" />
         </div>
       </div>
       </div>

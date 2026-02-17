@@ -619,7 +619,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       }}
     >
       <div className="relative h-dvh w-full">
-        <div className="pointer-events-none w-[25%] absolute left-4 top-4 z-10 flex items-center justify-between rounded-xl border border-stroke bg-white/90 p-3 shadow-1 backdrop-blur">
+        <div className="pointer-events-none absolute left-2 right-2 top-3 z-10 flex items-center justify-between rounded-xl border border-stroke bg-white/90 p-3 shadow-1 backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[25%]">
           <div className="pointer-events-auto w-full flex items-center gap-3">
             <input
               value={mapTitle}
