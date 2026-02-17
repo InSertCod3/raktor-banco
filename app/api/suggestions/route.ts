@@ -38,7 +38,7 @@ export async function POST(req: Request) {
   if (!sourceNode) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const type = (sourceNode.type ?? '').toLowerCase();
   if (type === 'social' || type === 'suggestion') {
-    return NextResponse.json({ error: 'Suggestions require an idea or notepad source node.' }, { status: 400 });
+    return NextResponse.json({ error: 'Suggestions require an idea, pain point, proof point, or notepad source node.' }, { status: 400 });
   }
 
   const sourceTexts = collectTextValues(sourceNode.data);

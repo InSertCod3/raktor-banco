@@ -16,6 +16,7 @@ import {
 import toast from "react-hot-toast";
 import { generateId } from "@/app/lib/utils";
 import IdeaNode from "./IdeaNode";
+import InsightInputNode from "./InsightInputNode";
 import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
 import SuggestionNode from "./SuggestionNode";
@@ -42,6 +43,15 @@ function createId(): string {
   return generateId(24);
 }
 
+function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<string, unknown> {
+  if (type === "social") return { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data };
+  if (type === "notepad") return { text: "Personal idea...", ...data };
+  if (type === "suggestion") return { title: "Generation Suggestion", text: "Use this note to generate content.", ...data };
+  if (type === "painpoint") return { text: "Main customer pain point...", ...data };
+  if (type === "proofpoint") return { text: "Proof point, data, or example...", ...data };
+  return { text: "New idea", ...data };
+}
+
 export default function MindMapClient({ mapId }: { mapId: string }) {
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -59,6 +69,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const nodeTypes = useMemo(
     () => ({
       idea: IdeaNode,
+      painpoint: InsightInputNode,
+      proofpoint: InsightInputNode,
       social: SocialNode,
       notepad: NodePadNode,
       suggestion: SuggestionNode,
@@ -202,13 +214,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       id,
       type: childType,
       position: { x: parent.position.x + 240, y: parent.position.y + 80 },
-      data: childType === "social"
-        ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
-        : childType === "notepad"
-          ? { text: "Personal idea...", ...data }
-          : childType === "suggestion"
-            ? { title: "Generation Suggestion", text: "Use this note to generate content.", ...data }
-          : { text: "New idea", ...data },
+      data: buildNodeData(childType, data),
     };
 
     setNodes((ns) => [...ns, child]);
@@ -232,13 +238,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       id,
       type,
       position: { x: offset, y: offset },
-      data: type === "social"
-        ? { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data }
-        : type === "notepad"
-          ? { text: "Personal idea...", ...data }
-          : type === "suggestion"
-            ? { title: "Generation Suggestion", text: "Use this note to generate content.", ...data }
-          : { text: "New idea", ...data },
+      data: buildNodeData(type, data),
     };
 
     setNodes((ns) => [...ns, node]);

@@ -31,7 +31,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
   return (
     <div
       className={[
-        'w-[360px] rounded-2xl border p-4 shadow-1',
+        'relative w-[360px] rounded-2xl border p-4 shadow-1',
         isFocused ? 'border-emerald-400 bg-emerald-50 ring-2 ring-emerald-300/30' : 'border-stroke bg-white',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
@@ -105,6 +105,37 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
           Create Social
         </button>
       </div>
+
+      {isHovering ? (
+        <div className="absolute left-full top-1/2 z-20 -translate-y-1/2 -translate-x-1">
+          <div className="w-[220px] rounded-2xl border border-stone-200/90 bg-white p-3 shadow-[0_14px_34px_rgba(17,24,39,0.14)] backdrop-blur">
+            <div className="mb-2.5 px-1">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-body-color">Add Branch</div>
+              <div className="mt-1 text-xs text-slate-500">Capture friction and supporting evidence.</div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                className="nodrag rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-2 text-left text-xs font-semibold text-rose-700 transition hover:from-rose-100 hover:to-rose-50"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => mindmap.addChildNode(id, 'painpoint', { text: 'Main customer pain point...' })}
+              >
+                + Pain Point
+                <div className="mt-0.5 text-[11px] font-medium text-rose-600/90">Add audience blockers and objections</div>
+              </button>
+              <button
+                type="button"
+                className="nodrag rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-2 text-left text-xs font-semibold text-sky-700 transition hover:from-sky-100 hover:to-sky-50"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={() => mindmap.addChildNode(id, 'proofpoint', { text: 'Proof point, data, or example...' })}
+              >
+                + Proof Point
+                <div className="mt-0.5 text-[11px] font-medium text-sky-600/90">Add metrics, case studies, or proof</div>
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import BackgroundGrid from './components/BackgroundGrid';
+import LandingFlowDemo from './components/LandingFlowDemo';
 
 export default function Home() {
   return (
@@ -74,6 +75,8 @@ export default function Home() {
             </ul>
           </aside>
         </section>
+
+        <LandingFlowDemo />
 
         <section className="mt-12">
           <div className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#687269]">Why teams join</div>

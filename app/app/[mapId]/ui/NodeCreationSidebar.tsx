@@ -3,7 +3,7 @@
 import React from "react";
 import { useMindMap, type NodeType } from "./MindMapContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen, faLightbulb, faSignsPost } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faCheck, faLightbulb, faSignsPost, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from 'react-tooltip'
 
 export default function NodeCreationSidebar() {
@@ -90,6 +90,36 @@ export default function NodeCreationSidebar() {
             <span className="flex flex-col">
               <span className="text-sm font-semibold text-dark">NodePad</span>
               <span className="text-xs text-body-color">Save personal ideas</span>
+            </span>
+          </button>
+
+          <button
+            className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-3 text-left transition hover:from-rose-100 hover:to-white"
+            data-tooltip-id="side-bar-tooltip"
+            data-tooltip-content="Create a Pain Point input node to capture audience friction."
+            onClick={() => handleCreate("painpoint")}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-200/70 text-rose-700 shadow-sm">
+              <FontAwesomeIcon icon={faTriangleExclamation} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-dark">Pain Point</span>
+              <span className="text-xs text-body-color">Capture user friction</span>
+            </span>
+          </button>
+
+          <button
+            className="group mt-3 flex w-full items-center gap-3 rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-3 text-left transition hover:from-sky-100 hover:to-white"
+            data-tooltip-id="side-bar-tooltip"
+            data-tooltip-content="Create a Proof Point input node to store evidence and credibility."
+            onClick={() => handleCreate("proofpoint")}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-200/70 text-sky-700 shadow-sm">
+              <FontAwesomeIcon icon={faCheck} />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-sm font-semibold text-dark">Proof Point</span>
+              <span className="text-xs text-body-color">Capture data and evidence</span>
             </span>
           </button>
         </div>
