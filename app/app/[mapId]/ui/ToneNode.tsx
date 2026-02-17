@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
@@ -38,8 +38,21 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
   const mindmap = useMindMap();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isToneMenuOpen, setIsToneMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const tone = data?.tone && TONE_OPTIONS.includes(data.tone) ? data.tone : 'Friendly';
   const isFocused = selected || mindmap.selectedNodeId === id;
+
+  useEffect(() => {
+    if (!isToneMenuOpen) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (menuRef.current.contains(event.target as globalThis.Node)) return;
+      setIsToneMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isToneMenuOpen]);
 
   return (
     <div
@@ -92,19 +105,51 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
         phraseEnforce={false}
       />
 
-      <label className="block text-xs font-semibold uppercase tracking-[0.08em] text-body-color">Tone Style</label>
-      <select
-        value={tone}
-        onChange={(e) => mindmap.updateNodeData(id, { tone: e.target.value })}
-        onMouseDown={(e) => e.stopPropagation()}
-        className="nodrag mt-2 w-full rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm text-dark outline-hidden focus:border-amber-400"
-      >
-        {TONE_OPTIONS.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+      <div className="rounded-xl border border-amber-200/80 bg-gradient-to-br from-amber-50/70 to-white p-3">
+        <label className="block text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-800">Tone Style</label>
+        <p className="mt-1 text-[11px] text-amber-700/80">Choose how the message should feel.</p>
+
+        <div ref={menuRef} className="relative mt-2">
+          <button
+            type="button"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => setIsToneMenuOpen((open) => !open)}
+            className="nodrag flex w-full items-center justify-between rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-dark shadow-sm outline-hidden transition hover:border-amber-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/70"
+          >
+            <span>{tone}</span>
+            <span className={`text-amber-600 transition ${isToneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
+          </button>
+
+          {isToneMenuOpen ? (
+            <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 overflow-hidden rounded-xl border border-amber-200 bg-white shadow-[0_12px_24px_rgba(17,24,39,0.14)]">
+              <ul className="max-h-56 overflow-y-auto py-1">
+                {TONE_OPTIONS.map((option) => {
+                  const active = option === tone;
+                  return (
+                    <li key={option}>
+                      <button
+                        type="button"
+                        className={[
+                          'nodrag flex w-full items-center justify-between px-3 py-2 text-left text-sm transition',
+                          active ? 'bg-amber-100/70 font-semibold text-amber-900' : 'text-slate-700 hover:bg-amber-50',
+                        ].join(' ')}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => {
+                          mindmap.updateNodeData(id, { tone: option });
+                          setIsToneMenuOpen(false);
+                        }}
+                      >
+                        <span>{option}</span>
+                        {active ? <span className="text-xs text-amber-700">Selected</span> : null}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
