@@ -121,7 +121,7 @@ export default function NodeCreationSidebar() {
 
         <div
           className={[
-            "relative overflow-hidden rounded-[28px] border border-stone-200 bg-white/95 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur transition-transform duration-300 ease-out",
+            "relative overflow-hidden rounded-[8px] border border-stone-200 bg-white/95 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur transition-transform duration-300 ease-out",
             isOpen ? "translate-x-0" : "-translate-x-[calc(100%+20px)] pointer-events-none",
           ].join(" ")}
         >
@@ -148,13 +148,10 @@ export default function NodeCreationSidebar() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-stone-200 bg-stone-50/90 p-3">
-            <div className="flex items-center justify-between">
-              <div className="text-[11px] font-semibold text-stone-700">Placement Target</div>
-              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            </div>
+          <div className="mt-3 rounded-xl border border-stone-200/90 bg-white px-3 py-2.5">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-500">How To Use</div>
             <p className="mt-1 text-xs text-stone-600">
-              {selectedNodeId ? "New nodes attach to the currently selected node." : "New nodes will be placed as root nodes."}
+              Core Nodes build the content flow. Strategy Branches shape pain, proof, and tone before generation.
             </p>
           </div>
         </div>
