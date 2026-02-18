@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import LoadingModal from '@/app/components/LoadingModal';
 
 interface MapItem {
   id: string;
@@ -126,6 +127,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
   const [mapTitleInput, setMapTitleInput] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreatingMap, setIsCreatingMap] = useState(false);
+  const [openingMapTitle, setOpeningMapTitle] = useState<string | null>(null);
 
   useEffect(() => {
     if (searchParams.get('create') !== '1') return;
@@ -375,6 +377,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
           <div key={m.id} className="group relative">
             <Link
               href={`/dashboard/${m.id}`}
+              onClick={() => setOpeningMapTitle(m.title)}
               className="block h-full rounded-2xl border border-stroke bg-white/80 p-6 shadow-1 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-white hover:shadow-xl"
             >
               <div className="flex items-start justify-between gap-3">
@@ -445,6 +448,12 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
           </div>
         </div>
       ) : null}
+
+      <LoadingModal
+        isOpen={openingMapTitle !== null}
+        title="Opening map"
+        description={`Loading "${openingMapTitle ?? 'map'}"...`}
+      />
     </>
   );
 }

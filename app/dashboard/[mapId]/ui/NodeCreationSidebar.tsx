@@ -135,7 +135,7 @@ export default function NodeCreationSidebar() {
 
         <div
           className={[
-            "relative flex max-h-[80dvh] flex-col overflow-hidden rounded-[8px] border border-stone-200 bg-white/95 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur transition-all duration-300 ease-out sm:max-h-[86dvh]",
+            "relative flex max-h-[80dvh] flex-col overflow-hidden rounded-[8px] border border-stone-200 bg-white/95 shadow-[0_22px_48px_rgba(15,23,42,0.18)] backdrop-blur transition-all duration-300 ease-out sm:max-h-[75dvh]",
             isOpen
               ? "translate-x-0 opacity-100 visible pointer-events-auto"
               : "-translate-x-[calc(100%+20px)] opacity-0 invisible pointer-events-none",

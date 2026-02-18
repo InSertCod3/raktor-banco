@@ -1,4 +1,4 @@
-## Mind Mapper MVP
+## MayDove MVP
 
 Visual-first mind mapping with platform-aware content generation (LinkedIn + Facebook).
 
@@ -43,6 +43,6 @@ npm run dev
 ### App routes
 
 - **Landing**: `/`
-- **Mind Mapper**: `/dashboard`
+- **MayDove**: `/dashboard`
   - Create a map: `/dashboard/new`
   - Edit a map: `/dashboard/[mapId]`

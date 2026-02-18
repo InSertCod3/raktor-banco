@@ -12,7 +12,7 @@ export default function Home() {
 
       <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">Mind Mapper</div>
+          <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">MayDove</div>
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <Link
               href="/dashboard"
@@ -38,7 +38,7 @@ export default function Home() {
               Turn scattered thoughts into publish-ready content with a visual map.
             </h1>
             <p className="mt-5 max-w-[640px] text-base text-[#5f6861] sm:text-lg">
-              Mind Mapper helps founders, marketers, and builders move from one core idea to structured content in a
+              MayDove helps founders, marketers, and builders move from one core idea to structured content in a
               single workspace. Map your thinking, generate LinkedIn, Facebook and Instagram drafts per node, and keep every post
               connected to its source context.
             </p>

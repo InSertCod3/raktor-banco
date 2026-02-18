@@ -19,6 +19,7 @@ import {
 } from "@xyflow/react";
 import toast from "react-hot-toast";
 import { generateId } from "@/app/lib/utils";
+import LoadingModal from "@/app/components/LoadingModal";
 import IdeaNode from "./IdeaNode";
 import InsightInputNode from "./InsightInputNode";
 import NodePadNode from "./NodePadNode";
@@ -42,6 +43,26 @@ type MapResponse = {
     nodes: Node[];
     edges: Edge[];
   };
+};
+
+type PersistedGraph = {
+  nodes: Array<{
+    id: string;
+    type?: string;
+    position: { x: number; y: number };
+    data?: Record<string, unknown>;
+  }>;
+  edges: Array<{
+    id: string;
+    source: string;
+    target: string;
+    type?: string;
+    sourceHandle?: string | null;
+    targetHandle?: string | null;
+    data?: Record<string, unknown>;
+    animated?: boolean;
+    style?: Record<string, unknown>;
+  }>;
 };
 
 const WORKSPACE_BOUNDS: [[number, number], [number, number]] = [
@@ -70,6 +91,28 @@ function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<s
   return { text: "", ...data };
 }
 
+function toPersistedGraph(nodes: Node[], edges: Edge[]): PersistedGraph {
+  return {
+    nodes: nodes.map((node) => ({
+      id: node.id,
+      type: typeof node.type === "string" ? node.type : undefined,
+      position: clampPosition(node.position),
+      data: (node.data as Record<string, unknown> | undefined) ?? {},
+    })),
+    edges: edges.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: typeof edge.type === "string" ? edge.type : undefined,
+      sourceHandle: edge.sourceHandle ?? null,
+      targetHandle: edge.targetHandle ?? null,
+      data: ((edge.data as Record<string, unknown> | undefined) ?? {}) as Record<string, unknown>,
+      animated: edge.animated,
+      style: (edge.style as Record<string, unknown> | undefined) ?? undefined,
+    })),
+  };
+}
+
 export default function MindMapClient({ mapId }: { mapId: string }) {
   const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -82,8 +125,9 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
 
   const [isSaving, setIsSaving] = useState(false);
-  const saveTimer = useRef<number | null>(null);
-  const titleTimer = useRef<number | null>(null);
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const lastSavedGraphRef = useRef<string>("");
+  const persistedTitleRef = useRef<string>("");
 
   const nodeTypes = useMemo(
     () => ({
@@ -103,6 +147,9 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     }),
     [],
   );
+  const normalizedTitle = mapTitle.trim() || "Untitled map";
+  const hasUnsavedTitleChanges =
+    loaded && normalizedTitle !== persistedTitleRef.current;
 
   useEffect(() => {
     toast(
@@ -128,6 +175,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoaded(false);
       setLoadError(null);
       const res = await fetch(`/api/maps/${mapId}`, { cache: "no-store" });
       if (!res.ok) {
@@ -138,23 +186,24 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       const data = (await res.json()) as MapResponse;
       if (cancelled) return;
 
+      const hydratedNodes = data.map.nodes.map((node) => ({
+        ...node,
+        position: clampPosition(node.position),
+      }));
+      const hydratedEdges = data.map.edges.map((edge) => ({
+        ...edge,
+        type: "deletable",
+        data: {
+          ...(edge.data as Record<string, unknown>),
+          onDelete: deleteEdgeById,
+        },
+      }));
+
       setMapTitle(data.map.title);
-      setNodes(
-        data.map.nodes.map((node) => ({
-          ...node,
-          position: clampPosition(node.position),
-        })),
-      );
-      setEdges(
-        data.map.edges.map((edge) => ({
-          ...edge,
-          type: "deletable",
-          data: {
-            ...(edge.data as Record<string, unknown>),
-            onDelete: deleteEdgeById,
-          },
-        })),
-      );
+      persistedTitleRef.current = data.map.title.trim() || "Untitled map";
+      setNodes(hydratedNodes);
+      setEdges(hydratedEdges);
+      lastSavedGraphRef.current = JSON.stringify(toPersistedGraph(hydratedNodes, hydratedEdges));
       setLoaded(true);
     })();
 
@@ -166,50 +215,66 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   // Autosave graph
   useEffect(() => {
     if (!loaded) return;
-    if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(async () => {
+    const graphPayload = toPersistedGraph(nodes, edges);
+    const graphSnapshot = JSON.stringify(graphPayload);
+    if (graphSnapshot === lastSavedGraphRef.current) return;
+
+    let cancelled = false;
+    (async () => {
       setIsSaving(true);
       try {
-        await fetch(`/api/maps/${mapId}/graph`, {
+        const res = await fetch(`/api/maps/${mapId}/graph`, {
           method: "PUT",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ nodes, edges }),
+          body: JSON.stringify(graphPayload),
         });
+        if (!res.ok || cancelled) return;
+        lastSavedGraphRef.current = graphSnapshot;
         toast.success("Saved", {
           id: "autosave",
           position: "top-center",
           duration: 2000,
         });
       } finally {
-        setIsSaving(false);
+        if (!cancelled) setIsSaving(false);
       }
-    }, 650);
+    })();
 
     return () => {
-      if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      cancelled = true;
     };
   }, [loaded, mapId, nodes, edges]);
 
-  // Autosave title
-  useEffect(() => {
+  async function saveTitleIfChanged() {
     if (!loaded) return;
-    if (titleTimer.current) window.clearTimeout(titleTimer.current);
-    titleTimer.current = window.setTimeout(async () => {
-      await fetch(`/api/maps/${mapId}`, {
+    const nextTitle = normalizedTitle;
+    if (nextTitle === persistedTitleRef.current) return;
+    setIsSavingTitle(true);
+    setMapTitle(nextTitle);
+    try {
+      const res = await fetch(`/api/maps/${mapId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ title: mapTitle.trim() || "Untitled map" }),
+        body: JSON.stringify({ title: nextTitle }),
       });
+      if (!res.ok) {
+        toast.error("Could not save title", {
+          id: "autosave-title-error",
+          position: "top-center",
+          duration: 2000,
+        });
+        return;
+      }
+      persistedTitleRef.current = nextTitle;
       toast.success("Title saved", {
         id: "autosave-title",
         position: "top-center",
         duration: 2000,
       });
-    }, 650);
-    return () => {
-      if (titleTimer.current) window.clearTimeout(titleTimer.current);
-    };
-  }, [loaded, mapId, mapTitle]);
+    } finally {
+      setIsSavingTitle(false);
+    }
+  }
 
   function onConnect(conn: Connection) {
     setEdges((eds) =>
@@ -741,7 +806,18 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       }}
     >
       <div className="relative h-dvh w-full">
-        <div className="pointer-events-none absolute left-2 right-2 top-3 z-10 flex items-center justify-between rounded-xl border border-stroke bg-white/90 p-3 shadow-1 backdrop-blur sm:left-4 sm:right-auto sm:top-4 sm:w-[25%]">
+        <LoadingModal
+          isOpen={!loaded && !loadError}
+          title="Opening map"
+          description="Loading nodes and connections..."
+        />
+        <div
+          className={`pointer-events-none absolute left-2 right-2 top-3 z-10 rounded-xl border border-stroke bg-white/90 p-3 shadow-1 backdrop-blur transition-[width] duration-300 ease-out sm:left-4 sm:right-auto sm:top-4 ${
+            hasUnsavedTitleChanges
+              ? "sm:w-[42%] md:w-[38%] lg:w-[34%]"
+              : "sm:w-[30%] md:w-[28%] lg:w-[25%]"
+          }`}
+        >
           <div className="pointer-events-auto w-full flex items-center gap-3">
             <input
               value={mapTitle}
@@ -749,6 +825,27 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
               className="w-full bg-transparent text-sm font-semibold text-dark outline-hidden"
               aria-label="Map title"
             />
+            {hasUnsavedTitleChanges ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setMapTitle(persistedTitleRef.current)}
+                  className="shrink-0 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-600 transition hover:border-stone-300 hover:bg-stone-50 hover:text-stone-800"
+                >
+                  Revert
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void saveTitleIfChanged();
+                  }}
+                  disabled={isSavingTitle}
+                  className="shrink-0 rounded-full bg-dark px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-white transition hover:bg-dark-2 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isSavingTitle ? "Saving..." : "Save"}
+                </button>
+              </>
+            ) : null}
             <Link
               href="/dashboard"
               className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-600 shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:bg-stone-50 hover:text-stone-800"

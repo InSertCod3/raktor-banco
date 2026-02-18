@@ -12,7 +12,7 @@ export default function LoginPage() {
       <div className="relative mx-auto flex min-h-dvh w-full max-w-6xl items-center px-4 py-10">
         <div className="grid w-full gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <section className="rounded-3xl border border-[#d4d0c4] bg-white/85 p-6 shadow-2 backdrop-blur sm:p-8">
-            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">Mind Mapper</div>
+            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">MayDove</div>
             <h1 className="mt-4 text-3xl font-semibold leading-tight text-[#2d3a33] sm:text-4xl">
               Welcome back to your visual content workspace.
             </h1>

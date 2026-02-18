@@ -4,8 +4,8 @@ import '@xyflow/react/dist/style.css';
 import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
-  title: 'Raktor | Crafting the Future with You',
-  description: 'Raktor builds high-quality MVP apps for startups and small businesses for just $1,000—fast, functional, and ready to grow.',
+  title: 'MayDove | Visual Content Ideation',
+  description: 'MayDove is a visual-first workspace to turn one core idea into LinkedIn, Facebook, and Instagram drafts with reusable mind maps.',
 };
 
 export default function RootLayout({
