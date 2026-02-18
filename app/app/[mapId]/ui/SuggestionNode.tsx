@@ -5,6 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { Tooltip } from 'react-tooltip';
+import { LineWave } from 'react-loader-spinner';
 import { useMindMap } from './MindMapContext';
 
 type SuggestionNodeData = {
@@ -264,8 +265,34 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
         disabled={!canGenerate}
         className="mt-3 w-full rounded-lg bg-violet-600 px-3 py-2 text-xs font-semibold text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:bg-violet-300"
       >
-        {isGenerating ? 'Generating suggestion...' : 'Generate suggestion'}
+        {isGenerating ? (
+          <span className="inline-flex items-center gap-2">
+            <LineWave
+              visible
+              height="28"
+              width="36"
+              color="#ffffff"
+              ariaLabel="suggestion-loading"
+            />
+            Generating suggestion...
+          </span>
+        ) : (
+          'Generate suggestion'
+        )}
       </button>
+
+      {isGenerating ? (
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-violet-700">
+          <LineWave
+            visible
+            height="20"
+            width="30"
+            color="#7c3aed"
+            ariaLabel="suggestion-panel-loading"
+          />
+          <span>Analyzing source and crafting suggestions...</span>
+        </div>
+      ) : null}
 
       {!hasSourceChanged && !isGenerating ? (
         <p className="mt-2 text-[11px] text-body-color">Button unlocks when source text changes.</p>

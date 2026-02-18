@@ -24,8 +24,12 @@ export type MindMapContextValue = {
   updateNodeText: (nodeId: string, text: string) => void;
   updateNodeData: (nodeId: string, dataPatch: Record<string, unknown>) => void;
   getNodeText: (nodeId: string) => string;
-  addChildNode: (parentNodeId: string, type?: NodeType, data?: Record<string, unknown>) => void;
-  addRootNode: (type: NodeType, data?: Record<string, unknown>) => void;
+  addChildNode: (
+    parentNodeId: string,
+    type?: NodeType,
+    data?: Record<string, unknown>
+  ) => string | null;
+  addRootNode: (type: NodeType, data?: Record<string, unknown>) => string;
   createSuggestionNode: (sourceNodeId: string) => void;
   deleteNode: (nodeId: string) => void;
 

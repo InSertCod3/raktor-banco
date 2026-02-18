@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
+import { ColorRing } from 'react-loader-spinner';
 
 type SocialNodeData = {
   label?: string;
@@ -172,11 +173,36 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         onClick={handleGenerate}
         disabled={isGenerating}
       >
-        {isGenerating ? `Generating ${platformLabel(platform)}...` : `Generate ${platformLabel(platform)}`}
+        {isGenerating ? (
+          <span className="inline-flex items-center gap-2">
+            <ColorRing
+              visible
+              height={18}
+              width={18}
+              ariaLabel="social-generation-loading"
+              colors={['#ffffff', '#dbeafe', '#bfdbfe', '#93c5fd', '#ffffff']}
+            />
+            {`Generating ${platformLabel(platform)}...`}
+          </span>
+        ) : (
+          `Generate ${platformLabel(platform)}`
+        )}
       </button>
 
       <div className="min-h-[170px] rounded-xl border border-stroke bg-white p-3">
         {error ? <p className="text-xs text-red-600">{error}</p> : null}
+        {!error && isGenerating && !streamedOutput ? (
+          <div className="mb-2 flex items-center gap-2 text-xs text-body-color">
+            <ColorRing
+              visible
+              height={22}
+              width={22}
+              ariaLabel="social-stream-loading"
+              colors={['#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb']}
+            />
+            <span>Preparing your post...</span>
+          </div>
+        ) : null}
         {!error && !content && !streamedOutput ? (
           <p className="text-xs text-body-color">Generate a post from connected idea context.</p>
         ) : null}

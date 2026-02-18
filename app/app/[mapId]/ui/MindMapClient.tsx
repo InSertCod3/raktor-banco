@@ -15,6 +15,7 @@ import {
   type Connection,
   type Edge,
   type Node,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import toast from "react-hot-toast";
 import { generateId } from "@/app/lib/utils";
@@ -58,6 +59,7 @@ function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<s
 }
 
 export default function MindMapClient({ mapId }: { mapId: string }) {
+  const reactFlowRef = useRef<ReactFlowInstance<Node, Edge> | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -206,6 +208,16 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     );
   }
 
+  function snapToNode(node: Node) {
+    const reactFlow = reactFlowRef.current;
+    if (!reactFlow) return;
+    const currentZoom = reactFlow.getZoom();
+    reactFlow.setCenter(node.position.x + 170, node.position.y + 90, {
+      duration: 180,
+      zoom: Math.max(currentZoom, 1),
+    });
+  }
+
   function addChildNodeById(
     parentNodeId: string,
     type: NodeType = "idea",
@@ -318,10 +330,11 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       },
     ]);
     setSelectedNodeId(id);
+    window.requestAnimationFrame(() => snapToNode(child));
     return id;
   }
 
-  function addRootNode(type: NodeType, data?: Record<string, unknown>) {
+  function addRootNode(type: NodeType, data?: Record<string, unknown>): string {
     const id = createId();
     const offset = nodes.length * 40;
     const node: Node = {
@@ -333,6 +346,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
     setNodes((ns) => [...ns, node]);
     setSelectedNodeId(id);
+    window.requestAnimationFrame(() => snapToNode(node));
+    return id;
   }
 
   function updateNodeText(nodeId: string, text: string) {
@@ -411,6 +426,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     setNodes((current) => [...current, suggestionNode]);
     setEdges((current) => [...current, suggestionEdge]);
     setSelectedNodeId(suggestionId);
+    window.requestAnimationFrame(() => snapToNode(suggestionNode));
   }
 
   async function generate(
@@ -727,6 +743,9 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           nodes={nodes}
           edges={edges}
           style={{ backgroundColor: REACT_FLOW_PANE_BACKGROUND }}
+          onInit={(instance) => {
+            reactFlowRef.current = instance;
+          }}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}

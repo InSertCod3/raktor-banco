@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useMindMap, type NodeType } from "./MindMapContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBookOpen, faCheck, faChevronLeft, faChevronRight, faLightbulb, faSignsPost, faTriangleExclamation, faWaveSquare } from "@fortawesome/free-solid-svg-icons";
@@ -9,10 +9,24 @@ import { Tooltip } from 'react-tooltip'
 export default function NodeCreationSidebar() {
   const { selectedNodeId, addChildNode, addRootNode } = useMindMap();
   const [isOpen, setIsOpen] = useState(true);
+  const creationLockRef = useRef<number | null>(null);
   const tooltipClassName =
     "z-20 max-w-[260px] rounded-xl border border-slate-700/70 bg-slate-900/95 px-3 py-2 text-xs font-medium leading-relaxed text-slate-100 shadow-xl backdrop-blur";
 
+  useEffect(() => {
+    return () => {
+      if (creationLockRef.current !== null) {
+        window.clearTimeout(creationLockRef.current);
+      }
+    };
+  }, []);
+
   const handleCreate = (type: NodeType) => {
+    if (creationLockRef.current !== null) return;
+    creationLockRef.current = window.setTimeout(() => {
+      creationLockRef.current = null;
+    }, 220);
+
     if (selectedNodeId) {
       addChildNode(selectedNodeId, type);
       return;
