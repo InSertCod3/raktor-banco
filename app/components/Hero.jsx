@@ -22,7 +22,7 @@ const Hero = () => {
 
           </p>
           <div className="flex flex-wrap items-center justify-center gap-5 mb-10">
-            <Link href="/app" className="bg-white text-dark px-7 py-[14px] rounded-md shadow-1 hover:bg-opacity-90">
+            <Link href="/dashboard" className="bg-white text-dark px-7 py-[14px] rounded-md shadow-1 hover:bg-opacity-90">
               Open Mind Mapper
             </Link>
             <Link href="#pricing" className="bg-white/[0.12] text-white px-6 py-[14px] rounded-md hover:bg-white hover:text-dark">

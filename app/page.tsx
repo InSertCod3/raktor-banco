@@ -15,7 +15,7 @@ export default function Home() {
           <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">Mind Mapper</div>
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <Link
-              href="/app"
+              href="/dashboard"
               className="rounded-full border border-[#d4d0c4] bg-white/80 px-4 py-2 font-semibold uppercase tracking-wide text-[#2d3a33] hover:bg-white"
             >
               Open app
@@ -44,13 +44,13 @@ export default function Home() {
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
-                href="/app/new"
+                href="/dashboard/new"
                 className="rounded-full bg-[#6e8b73] px-6 py-3 text-sm font-semibold text-white shadow-2 hover:bg-[#5c7961]"
               >
                 Start your first map
               </Link>
               <Link
-                href="/app"
+                href="/dashboard"
                 className="rounded-full border border-[#d4d0c4] bg-white/80 px-6 py-3 text-sm font-semibold text-[#2d3a33] hover:bg-white"
               >
                 See the workspace
@@ -138,7 +138,7 @@ export default function Home() {
                 Join and create a map
               </Link>
               <Link
-                href="/app"
+                href="/dashboard"
                 className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20"
               >
                 Preview platform

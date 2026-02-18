@@ -64,7 +64,7 @@ export default function LoginPage() {
             </div>
 
             <p className="mt-5 text-xs text-[#7b847d]">
-              TODO: replace button actions with SuperTokens APIs and route success to <code>/app</code>.
+              TODO: replace button actions with SuperTokens APIs and route success to <code>/dashboard</code>.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
@@ -72,7 +72,7 @@ export default function LoginPage() {
                 Back to landing
               </Link>
               <span className="text-[#9aa39b]">•</span>
-              <Link href="/app" className="font-semibold text-[#2d3a33] underline underline-offset-4">
+              <Link href="/dashboard" className="font-semibold text-[#2d3a33] underline underline-offset-4">
                 Preview platform
               </Link>
             </div>

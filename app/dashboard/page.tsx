@@ -65,7 +65,7 @@ export default async function MindAppHome({
             </span>
             <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">LinkedIn + Facebook</span>
             <Link
-              href="/app?create=1"
+              href="/dashboard?create=1"
               className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 transition hover:bg-dark-2"
             >
               New map
@@ -88,7 +88,7 @@ export default async function MindAppHome({
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               <Link
-                href="/app?create=1"
+                href="/dashboard?create=1"
                 className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white shadow-2 transition hover:bg-blue-dark"
               >
                 Start a new map

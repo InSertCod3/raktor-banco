@@ -31,7 +31,7 @@ const Navbar = () => {
               <ul className="lg:flex justify-center">
                 {[
                   { href: "#home", label: "Home" },
-                  { href: "/app", label: "App" },
+                  { href: "/dashboard", label: "App" },
                   // { href: "#about", label: "About" },
                   { href: "#pricing", label: "Pricing" },
                   // { href: "#team", label: "Team" },

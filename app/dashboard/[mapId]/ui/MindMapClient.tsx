@@ -750,7 +750,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
               aria-label="Map title"
             />
             <Link
-              href="/app"
+              href="/dashboard"
               className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-stone-600 shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:bg-stone-50 hover:text-stone-800"
             >
               <FontAwesomeIcon icon={faHouse} className="text-[10px]" />

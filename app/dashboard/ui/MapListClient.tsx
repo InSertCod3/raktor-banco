@@ -204,7 +204,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
 
       const data = (await res.json()) as { mapId: string };
       closeCreateModal(true);
-      router.push(`/app/${data.mapId}`);
+      router.push(`/dashboard/${data.mapId}`);
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -374,7 +374,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
         {maps.map((m) => (
           <div key={m.id} className="group relative">
             <Link
-              href={`/app/${m.id}`}
+              href={`/dashboard/${m.id}`}
               className="block h-full rounded-2xl border border-stroke bg-white/80 p-6 shadow-1 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:bg-white hover:shadow-xl"
             >
               <div className="flex items-start justify-between gap-3">
