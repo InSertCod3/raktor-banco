@@ -40,7 +40,6 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
       onMouseEnter={() => setIsNodeHovering(true)}
       onMouseLeave={() => setIsNodeHovering(false)}
     >
-      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-emerald-500" />
       <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-emerald-500" />
 
       <div className="mb-3 flex items-start justify-between gap-2">

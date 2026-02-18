@@ -210,16 +210,97 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     parentNodeId: string,
     type: NodeType = "idea",
     data?: Record<string, unknown>,
-  ) {
+    options?: {
+      sourceHandle?: string;
+      targetHandle?: string;
+      positionOffset?: { x: number; y: number };
+    },
+  ): string | null {
     const parent = nodes.find((n) => n.id === parentNodeId) ?? nodes[0];
-    if (!parent) return;
+    if (!parent) return null;
+
+    const collectConnectedNodeIds = (startId: string): Set<string> => {
+      const visited = new Set<string>([startId]);
+      const queue: string[] = [startId];
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (!current) continue;
+
+        for (const edge of edges) {
+          if (edge.source !== current && edge.target !== current) continue;
+          const neighbor = edge.source === current ? edge.target : edge.source;
+          if (visited.has(neighbor)) continue;
+          visited.add(neighbor);
+          queue.push(neighbor);
+        }
+      }
+
+      return visited;
+    };
+
+    const findClearPosition = (baseX: number, baseY: number) => {
+      const isOccupied = (x: number, y: number) =>
+        nodes.some(
+          (node) =>
+            Math.abs(node.position.x - x) < 340 &&
+            Math.abs(node.position.y - y) < 170,
+        );
+
+      if (!isOccupied(baseX, baseY)) return { x: baseX, y: baseY };
+
+      for (let step = 1; step <= 12; step += 1) {
+        const downY = baseY + step * 120;
+        if (!isOccupied(baseX, downY)) return { x: baseX, y: downY };
+
+        const upY = baseY - step * 120;
+        if (!isOccupied(baseX, upY)) return { x: baseX, y: upY };
+      }
+
+      return { x: baseX, y: baseY + 140 };
+    };
 
     const id = createId();
     const childType: NodeType = type;
+    let edgeSourceId = parent.id;
+    let position = {
+      x: parent.position.x + (options?.positionOffset?.x ?? 240),
+      y: parent.position.y + (options?.positionOffset?.y ?? 80),
+    };
+
+    // Social nodes should appear at the far-right end of the connected branch.
+    if (childType === "social" && !options?.positionOffset) {
+      const connectedIds = collectConnectedNodeIds(parent.id);
+      const connectedNodes = nodes.filter((node) => connectedIds.has(node.id));
+      const rightMostNode = connectedNodes.reduce(
+        (current, node) => (node.position.x > current.position.x ? node : current),
+        parent,
+      );
+      const rightMostIsSocial = (rightMostNode.type ?? "").toLowerCase() === "social";
+      if (rightMostIsSocial) {
+        const incomingCandidates = edges
+          .filter((edge) => edge.source === rightMostNode.id || edge.target === rightMostNode.id)
+          .map((edge) => (edge.source === rightMostNode.id ? edge.target : edge.source))
+          .map((nodeId) => nodes.find((node) => node.id === nodeId))
+          .filter((node): node is Node => node !== undefined)
+          .filter((node) => connectedIds.has(node.id) && node.id !== rightMostNode.id)
+          .sort((a, b) => b.position.x - a.position.x);
+
+        edgeSourceId = incomingCandidates[0]?.id ?? parent.id;
+      } else {
+        edgeSourceId = rightMostNode.id;
+      }
+
+      position = findClearPosition(
+        rightMostNode.position.x + 420,
+        rightMostNode.position.y,
+      );
+    }
+
     const child: Node = {
       id,
       type: childType,
-      position: { x: parent.position.x + 240, y: parent.position.y + 80 },
+      position,
       data: buildNodeData(childType, data),
     };
 
@@ -228,13 +309,16 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       ...es,
       {
         id: createId(),
-        source: parent.id,
+        source: edgeSourceId,
         target: id,
+        sourceHandle: options?.sourceHandle,
+        targetHandle: options?.targetHandle,
         type: "deletable",
         data: { onDelete: deleteEdgeById },
       },
     ]);
     setSelectedNodeId(id);
+    return id;
   }
 
   function addRootNode(type: NodeType, data?: Record<string, unknown>) {
