@@ -87,6 +87,7 @@ function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<s
   if (type === "suggestion") return { title: "Generation Suggestion", text: "Use this note to generate content.", ...data };
   if (type === "painpoint") return { text: "", ...data };
   if (type === "proofpoint") return { text: "", ...data };
+  if (type === "hookcta") return { text: "", ...data };
   if (type === "tone") return { ...data };
   return { text: "", ...data };
 }
@@ -134,6 +135,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       idea: IdeaNode,
       painpoint: InsightInputNode,
       proofpoint: InsightInputNode,
+      hookcta: InsightInputNode,
       tone: ToneNode,
       social: SocialNode,
       notepad: NodePadNode,

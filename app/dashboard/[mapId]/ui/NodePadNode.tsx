@@ -49,8 +49,8 @@ export default function NodePadNode({ id, data, selected }: NodeProps<NodePadTyp
 
         <div className="flex items-start justify-between gap-2">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-800">NodePad</div>
-            <div className="text-sm font-semibold text-stone-800">Personal Thoughts</div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-800">Notes</div>
+            <div className="text-sm font-semibold text-stone-800">Context & Reminders</div>
           </div>
           <div className="flex items-center gap-2">
             {isHovering ? (
@@ -81,7 +81,7 @@ export default function NodePadNode({ id, data, selected }: NodeProps<NodePadTyp
           mindmap.deleteNode(id);
           setIsDeleteModalOpen(false);
         }}
-        title="Delete NodePad"
+        title="Delete Notes"
         itemName={String(data?.text || 'Untitled Note').slice(0, 36)}
         phraseEnforce={false}
       />

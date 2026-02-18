@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useMindMap, type NodeType } from "./MindMapContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBookOpen, faCheck, faChevronLeft, faChevronRight, faLightbulb, faSignsPost, faTriangleExclamation, faWaveSquare } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen, faBullhorn, faCheck, faChevronLeft, faChevronRight, faLightbulb, faSignsPost, faTriangleExclamation, faWaveSquare } from "@fortawesome/free-solid-svg-icons";
 import { Tooltip } from 'react-tooltip'
 
 export default function NodeCreationSidebar() {
@@ -45,27 +45,27 @@ export default function NodeCreationSidebar() {
   }> = [
     {
       type: "idea",
-      title: "Idea Node",
-      subtitle: "Define your central thought",
-      tooltip: "Create an Idea Node that can generate social content.",
+      title: "Core Idea",
+      subtitle: "Set the main message",
+      tooltip: "Start your map with the central idea you want to expand.",
       cardClass: "border-emerald-200 from-emerald-50 to-white hover:from-emerald-100",
       iconWrapClass: "bg-emerald-200/85 text-emerald-700 group-hover:-rotate-6",
       icon: faLightbulb,
     },
     {
       type: "social",
-      title: "Social Node",
-      subtitle: "Generate platform outputs",
-      tooltip: "Create a Social Node for platform-specific generated posts.",
+      title: "Social Draft",
+      subtitle: "Generate platform-ready copy",
+      tooltip: "Create a social output node for generated LinkedIn, Facebook, or Instagram drafts.",
       cardClass: "border-blue-200 from-blue-50 to-white hover:from-blue-100",
       iconWrapClass: "bg-blue-200/85 text-blue-700 group-hover:rotate-6",
       icon: faSignsPost,
     },
     {
       type: "notepad",
-      title: "NodePad",
-      subtitle: "Capture private notes",
-      tooltip: "Create a NodePad for personal ideas and private notes.",
+      title: "Notes",
+      subtitle: "Capture context and reminders",
+      tooltip: "Add private notes to keep important context tied to your map.",
       cardClass: "border-lime-200 from-lime-50 to-white hover:from-lime-100",
       iconWrapClass: "bg-lime-200/85 text-lime-700 group-hover:-rotate-3",
       icon: faBookOpen,
@@ -83,30 +83,39 @@ export default function NodeCreationSidebar() {
   }> = [
     {
       type: "painpoint",
-      title: "Pain Point",
+      title: "Audience Pain",
       subtitle: "Capture user friction",
-      tooltip: "Create a Pain Point input node to capture audience friction.",
+      tooltip: "Document the core struggle your audience is trying to solve.",
       cardClass: "border-rose-200 from-rose-50 to-white hover:from-rose-100",
       iconWrapClass: "bg-rose-200/85 text-rose-700 group-hover:rotate-3",
       icon: faTriangleExclamation,
     },
     {
       type: "proofpoint",
-      title: "Proof Point",
-      subtitle: "Capture evidence and data",
-      tooltip: "Create a Proof Point input node to store evidence and credibility.",
+      title: "Proof & Evidence",
+      subtitle: "Capture proof and credibility",
+      tooltip: "Add data, examples, or outcomes that support your main idea.",
       cardClass: "border-sky-200 from-sky-50 to-white hover:from-sky-100",
       iconWrapClass: "bg-sky-200/85 text-sky-700 group-hover:-rotate-3",
       icon: faCheck,
     },
     {
       type: "tone",
-      title: "Tone Node",
-      subtitle: "Control voice and style",
-      tooltip: "Create a Tone Node to control the messaging style of generated output.",
+      title: "Voice & Tone",
+      subtitle: "Guide style and delivery",
+      tooltip: "Define how the message should sound before generating content.",
       cardClass: "border-amber-200 from-amber-50 to-white hover:from-amber-100",
       iconWrapClass: "bg-amber-200/85 text-amber-700 group-hover:rotate-6",
       icon: faWaveSquare,
+    },
+    {
+      type: "hookcta",
+      title: "Hook & CTA",
+      subtitle: "Grab attention in 2 seconds",
+      tooltip: "Create an opening hook with a 'Did you know?' angle and a clear call-to-action.",
+      cardClass: "border-violet-200 from-violet-50 to-white hover:from-violet-100",
+      iconWrapClass: "bg-violet-200/85 text-violet-700 group-hover:-rotate-6",
+      icon: faBullhorn,
     },
   ];
 
@@ -147,9 +156,9 @@ export default function NodeCreationSidebar() {
         <div className="relative shrink-0 border-b border-stone-200/80 px-5 pb-4 pt-5">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">Builder Panel</div>
-              <h3 className="mt-1 text-lg font-semibold text-[#1f2b25]">Mind Map Tools</h3>
-              <p className="mt-1 text-xs text-stone-500">Select a tool and click to add instantly.</p>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-stone-500">Map Builder</div>
+              <h3 className="mt-1 text-lg font-semibold text-[#1f2b25]">Build Your Map</h3>
+              <p className="mt-1 text-xs text-stone-500">Choose what to add next to keep your idea flow moving.</p>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -165,15 +174,15 @@ export default function NodeCreationSidebar() {
           </div>
 
           <div className="mt-3 rounded-xl border border-stone-200/90 bg-white px-3 py-2.5">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-500">How To Use</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-500">Workflow</div>
             <p className="mt-1 text-xs text-stone-600">
-              Core Nodes build the content flow. Strategy Branches shape pain, proof, and tone before generation.
+              Start with core nodes, then add strategy branches to shape pain points, proof, and tone before generating content.
             </p>
           </div>
         </div>
 
         <div className="relative min-h-0 flex-1 overflow-y-auto px-5 pb-8 pt-4">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-stone-500">Core Nodes</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-stone-500">1. Core Flow Nodes</div>
           <div className="mt-2 space-y-2">
             {coreTools.map((tool) => (
               <button
@@ -203,7 +212,7 @@ export default function NodeCreationSidebar() {
             ))}
           </div>
 
-          <div className="mt-4 text-[10px] font-semibold uppercase tracking-[0.15em] text-stone-500">Strategy Branches</div>
+          <div className="mt-4 text-[10px] font-semibold uppercase tracking-[0.15em] text-stone-500">2. Strategy Branch Nodes</div>
           <div className="mt-2 space-y-2">
             {strategyTools.map((tool) => (
               <button

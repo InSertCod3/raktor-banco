@@ -69,8 +69,8 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
 
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">Tone Node</div>
-          <div className="text-sm font-semibold text-dark">Messaging Voice</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-amber-700">Voice & Tone</div>
+          <div className="text-sm font-semibold text-dark">Message Delivery</div>
         </div>
         <div className="flex items-center gap-2">
           {isHovering ? (
@@ -100,7 +100,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
           mindmap.deleteNode(id);
           setIsDeleteModalOpen(false);
         }}
-        title="Delete Tone Node"
+        title="Delete Voice & Tone"
         itemName={tone ? `Tone: ${tone}` : 'Untitled Tone'}
         phraseEnforce={false}
       />

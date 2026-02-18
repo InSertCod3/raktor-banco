@@ -130,7 +130,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">Social Output</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">Social Draft</div>
           <div className="text-sm font-semibold text-dark">{platformLabel(platform)}</div>
         </div>
         <button
@@ -146,8 +146,8 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Social Node"
-        itemName={data?.label || 'Social Node'}
+        title="Delete Social Draft"
+        itemName={data?.label || 'Social Draft'}
         phraseEnforce={false}
       />
 
