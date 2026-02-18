@@ -116,7 +116,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
                   type="button"
                   className="nodrag rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-2 text-left text-xs font-semibold text-rose-700 transition hover:from-rose-100 hover:to-rose-50"
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'painpoint', { text: 'Main customer pain point...' })}
+                  onClick={() => mindmap.addChildNode(id, 'painpoint')}
                 >
                   + Pain Point
                   <div className="mt-0.5 text-[11px] font-medium text-rose-600/90">Add audience blockers and objections</div>
@@ -125,7 +125,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
                   type="button"
                   className="nodrag rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-2 text-left text-xs font-semibold text-sky-700 transition hover:from-sky-100 hover:to-sky-50"
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'proofpoint', { text: 'Proof point, data, or example...' })}
+                  onClick={() => mindmap.addChildNode(id, 'proofpoint')}
                 >
                   + Proof Point
                   <div className="mt-0.5 text-[11px] font-medium text-sky-600/90">Add metrics, case studies, or proof</div>
@@ -134,7 +134,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
                   type="button"
                   className="nodrag rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-2 text-left text-xs font-semibold text-amber-700 transition hover:from-amber-100 hover:to-amber-50"
                   onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'tone', { tone: 'Friendly' })}
+                  onClick={() => mindmap.addChildNode(id, 'tone')}
                 >
                   + Tone Node
                   <div className="mt-0.5 text-[11px] font-medium text-amber-700/90">Set the messaging voice for outputs</div>

@@ -40,7 +40,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
   const [isHovering, setIsHovering] = useState(false);
   const [isToneMenuOpen, setIsToneMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const tone = data?.tone && TONE_OPTIONS.includes(data.tone) ? data.tone : 'Friendly';
+  const tone = data?.tone && TONE_OPTIONS.includes(data.tone) ? data.tone : undefined;
   const isFocused = selected || mindmap.selectedNodeId === id;
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
           setIsDeleteModalOpen(false);
         }}
         title="Delete Tone Node"
-        itemName={`Tone: ${tone}`}
+        itemName={tone ? `Tone: ${tone}` : 'Untitled Tone'}
         phraseEnforce={false}
       />
 
@@ -116,7 +116,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
             onClick={() => setIsToneMenuOpen((open) => !open)}
             className="nodrag flex w-full items-center justify-between rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-dark shadow-sm outline-hidden transition hover:border-amber-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/70"
           >
-            <span>{tone}</span>
+            <span className={tone ? 'text-dark' : 'text-body-color'}>{tone ?? 'Select tone...'}</span>
             <span className={`text-amber-600 transition ${isToneMenuOpen ? 'rotate-180' : ''}`}>▾</span>
           </button>
 

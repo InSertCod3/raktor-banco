@@ -44,18 +44,30 @@ type MapResponse = {
   };
 };
 
+const WORKSPACE_BOUNDS: [[number, number], [number, number]] = [
+  [-3800, -3400],
+  [3800, 3400],
+];
+
+function clampPosition(position: { x: number; y: number }): { x: number; y: number } {
+  return {
+    x: Math.min(Math.max(position.x, WORKSPACE_BOUNDS[0][0]), WORKSPACE_BOUNDS[1][0]),
+    y: Math.min(Math.max(position.y, WORKSPACE_BOUNDS[0][1]), WORKSPACE_BOUNDS[1][1]),
+  };
+}
+
 function createId(): string {
   return generateId(24);
 }
 
 function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<string, unknown> {
   if (type === "social") return { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data };
-  if (type === "notepad") return { text: "Personal idea...", ...data };
+  if (type === "notepad") return { text: "", ...data };
   if (type === "suggestion") return { title: "Generation Suggestion", text: "Use this note to generate content.", ...data };
-  if (type === "painpoint") return { text: "Main customer pain point...", ...data };
-  if (type === "proofpoint") return { text: "Proof point, data, or example...", ...data };
-  if (type === "tone") return { tone: "Friendly", ...data };
-  return { text: "New idea", ...data };
+  if (type === "painpoint") return { text: "", ...data };
+  if (type === "proofpoint") return { text: "", ...data };
+  if (type === "tone") return { ...data };
+  return { text: "", ...data };
 }
 
 export default function MindMapClient({ mapId }: { mapId: string }) {
@@ -127,7 +139,12 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       if (cancelled) return;
 
       setMapTitle(data.map.title);
-      setNodes(data.map.nodes);
+      setNodes(
+        data.map.nodes.map((node) => ({
+          ...node,
+          position: clampPosition(node.position),
+        })),
+      );
       setEdges(
         data.map.edges.map((edge) => ({
           ...edge,
@@ -309,10 +326,12 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       );
     }
 
+    const clampedPosition = clampPosition(position);
+
     const child: Node = {
       id,
       type: childType,
-      position,
+      position: clampedPosition,
       data: buildNodeData(childType, data),
     };
 
@@ -340,7 +359,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     const node: Node = {
       id,
       type,
-      position: { x: offset, y: offset },
+      position: clampPosition({ x: offset, y: offset }),
       data: buildNodeData(type, data),
     };
 
@@ -404,7 +423,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     const suggestionNode: Node = {
       id: suggestionId,
       type: "suggestion",
-      position: { x: source.position.x + 280, y: source.position.y - 20 },
+      position: clampPosition({
+        x: source.position.x + 280,
+        y: source.position.y - 20,
+      }),
       data: {
         title: "Smart Advice",
         text: "I will analyze the connected parent node and suggest improvements.",
@@ -743,6 +765,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           nodes={nodes}
           edges={edges}
           style={{ backgroundColor: REACT_FLOW_PANE_BACKGROUND }}
+          translateExtent={WORKSPACE_BOUNDS}
+          nodeExtent={WORKSPACE_BOUNDS}
           onInit={(instance) => {
             reactFlowRef.current = instance;
           }}
