@@ -7,6 +7,7 @@ export function buildPlatformPrompt(args: {
   painPointTexts?: string[];
   proofPointTexts?: string[];
   toneValues?: string[];
+  messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
 }): { system: string; user: string } {
   const idea = args.ideaText.trim();
   const contextTexts = (args.contextTexts ?? [])
@@ -19,6 +20,17 @@ export function buildPlatformPrompt(args: {
     .map((text) => text.trim())
     .filter(Boolean);
   const toneValues = Array.from(new Set((args.toneValues ?? []).map((text) => text.trim()).filter(Boolean)));
+  const messagingLength = args.messagingLength ?? 'standard';
+  const messagingLengthLabel =
+    messagingLength === 'shortest'
+      ? 'Shortest'
+      : messagingLength === 'shorter'
+      ? 'Shorter'
+      : messagingLength === 'longer'
+      ? 'Longer'
+      : messagingLength === 'longest'
+      ? 'Longest'
+      : 'Standard';
   const toneBlock = toneValues.length
     ? ['', `Tone to use: ${toneValues.join(', ')}`]
     : [];
@@ -40,6 +52,16 @@ export function buildPlatformPrompt(args: {
   ].join('\n');
 
   if (args.platform === PlatformType.LINKEDIN) {
+    const linkedInLengthConstraint =
+      messagingLength === 'shortest'
+        ? '- 250-450 characters (aim, don’t hard-count)'
+        : messagingLength === 'shorter'
+        ? '- 450-700 characters (aim, don’t hard-count)'
+        : messagingLength === 'longer'
+        ? '- 1200-1700 characters (aim, don’t hard-count)'
+        : messagingLength === 'longest'
+        ? '- 1700-2400 characters (aim, don’t hard-count)'
+        : '- 900-1400 characters (aim, don’t hard-count)';
     const user = [
       'Write a LinkedIn post based on this idea:',
       `"${idea}"`,
@@ -48,8 +70,10 @@ export function buildPlatformPrompt(args: {
       ...proofPointBlock,
       ...contextBlock,
       '',
+      `Messaging length preference: ${messagingLengthLabel}`,
+      '',
       'Constraints:',
-      '- 900-1400 characters (aim, don’t hard-count)',
+      linkedInLengthConstraint,
       '- Strong hook in the first 1-2 lines',
       '- Clear value and one actionable takeaway',
       '- Respect the requested tone style',
@@ -61,6 +85,16 @@ export function buildPlatformPrompt(args: {
   }
 
   if (args.platform === 'INSTAGRAM') {
+    const instagramLengthConstraint =
+      messagingLength === 'shortest'
+        ? '- 70-130 characters (aim, do not hard-count)'
+        : messagingLength === 'shorter'
+        ? '- 130-220 characters (aim, do not hard-count)'
+        : messagingLength === 'longer'
+        ? '- 260-450 characters (aim, do not hard-count)'
+        : messagingLength === 'longest'
+        ? '- 450-700 characters (aim, do not hard-count)'
+        : '- 120-350 characters (aim, do not hard-count)';
     const user = [
       'Write an Instagram caption based on this idea:',
       `"${idea}"`,
@@ -69,8 +103,10 @@ export function buildPlatformPrompt(args: {
       ...proofPointBlock,
       ...contextBlock,
       '',
+      `Messaging length preference: ${messagingLengthLabel}`,
+      '',
       'Constraints:',
-      '- 120-350 characters (aim, do not hard-count)',
+      instagramLengthConstraint,
       '- Strong first line and clear message',
       '- Respect the requested tone style',
       '- If pain/proof points are provided, directly leverage them in the caption',
@@ -82,6 +118,16 @@ export function buildPlatformPrompt(args: {
   }
 
   // FACEBOOK
+  const facebookLengthConstraint =
+    messagingLength === 'shortest'
+      ? '- 120-240 characters (aim, don’t hard-count)'
+      : messagingLength === 'shorter'
+      ? '- 220-420 characters (aim, don’t hard-count)'
+      : messagingLength === 'longer'
+      ? '- 650-1000 characters (aim, don’t hard-count)'
+      : messagingLength === 'longest'
+      ? '- 950-1400 characters (aim, don’t hard-count)'
+      : '- 300-700 characters (aim, don’t hard-count)';
   const user = [
     'Write a Facebook post based on this idea:',
     `"${idea}"`,
@@ -90,8 +136,10 @@ export function buildPlatformPrompt(args: {
     ...proofPointBlock,
     ...contextBlock,
     '',
+    `Messaging length preference: ${messagingLengthLabel}`,
+    '',
     'Constraints:',
-    '- 300-700 characters (aim, don’t hard-count)',
+    facebookLengthConstraint,
     '- Friendly, conversational tone',
     '- Respect the requested tone style',
     '- If pain/proof points are provided, directly leverage them in the post',

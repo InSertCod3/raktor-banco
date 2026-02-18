@@ -15,9 +15,19 @@ type SocialNodeData = {
   type: 'social';
   platform?: Platform;
   content?: string;
+  messagingLengthByPlatform?: Partial<Record<Platform, MessagingLengthOption | 'medium' | 'long'>>;
 };
 
 type SocialNodeType = Node<SocialNodeData, 'social'>;
+type MessagingLengthOption = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
+
+const MESSAGING_LENGTH_OPTIONS: { value: MessagingLengthOption; label: string }[] = [
+  { value: 'shortest', label: 'Shortest' },
+  { value: 'shorter', label: 'Shorter' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'longer', label: 'Longer' },
+  { value: 'longest', label: 'Longest' },
+];
 
 function platformLabel(platform: Platform) {
   if (platform === 'LINKEDIN') return 'LinkedIn';
@@ -37,6 +47,15 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
   const isFocused = selected || mindmap.selectedNodeId === id;
   const content = String(data?.content ?? '');
+  const messagingLengthByPlatform = data?.messagingLengthByPlatform ?? {};
+  const currentLengthValue =
+    messagingLengthByPlatform[platform] === 'medium'
+      ? 'standard'
+      : messagingLengthByPlatform[platform] === 'long'
+      ? 'longer'
+      : messagingLengthByPlatform[platform] ?? 'standard';
+  const currentLengthIndex = MESSAGING_LENGTH_OPTIONS.findIndex((option) => option.value === currentLengthValue);
+  const safeLengthIndex = currentLengthIndex >= 0 ? currentLengthIndex : 2;
 
   const copyWithFallback = (text: string): boolean => {
     try {
@@ -165,6 +184,42 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
             {platformLabel(item)}
           </button>
         ))}
+      </div>
+
+      <div className="mb-3 rounded-xl border border-stroke bg-white p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-body-color">Messaging Length</div>
+          <div className="text-[11px] font-semibold text-dark">
+            {MESSAGING_LENGTH_OPTIONS[safeLengthIndex].label}
+          </div>
+        </div>
+        <input
+          type="range"
+          min={0}
+          max={MESSAGING_LENGTH_OPTIONS.length - 1}
+          step={1}
+          value={safeLengthIndex}
+          onMouseDown={(e) => e.stopPropagation()}
+          onChange={(e) => {
+            const nextIndex = Number(e.target.value);
+            const nextValue = MESSAGING_LENGTH_OPTIONS[nextIndex]?.value ?? 'standard';
+            mindmap.updateNodeData(id, {
+              messagingLengthByPlatform: {
+                ...messagingLengthByPlatform,
+                [platform]: nextValue,
+              },
+            });
+          }}
+          className="nodrag w-full accent-blue-600"
+          aria-label={`Messaging length for ${platformLabel(platform)}`}
+        />
+        <div className="mt-2 grid grid-cols-5 text-[10px] text-body-color">
+          <span>Shortest</span>
+          <span className="text-center">Shorter</span>
+          <span className="text-center">Standard</span>
+          <span className="text-center">Longer</span>
+          <span className="text-right">Longest</span>
+        </div>
       </div>
 
       <button
