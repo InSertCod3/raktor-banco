@@ -43,6 +43,6 @@ npm run dev
 ### App routes
 
 - **Landing**: `/`
-- **Mind Mapper**: `/app`
-  - Create a map: `/app/new`
-  - Edit a map: `/app/[mapId]`
+- **Mind Mapper**: `/dashboard`
+  - Create a map: `/dashboard/new`
+  - Edit a map: `/dashboard/[mapId]`
