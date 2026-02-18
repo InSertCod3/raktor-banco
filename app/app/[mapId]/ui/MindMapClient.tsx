@@ -45,8 +45,8 @@ type MapResponse = {
 };
 
 const WORKSPACE_BOUNDS: [[number, number], [number, number]] = [
-  [-3800, -3400],
-  [3800, 3400],
+  [-4800, -4400],
+  [4800, 4400],
 ];
 
 function clampPosition(position: { x: number; y: number }): { x: number; y: number } {
