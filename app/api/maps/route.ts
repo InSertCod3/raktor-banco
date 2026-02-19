@@ -36,7 +36,7 @@ export async function POST(req: Request) {
           type: 'idea',
           positionX: 0,
           positionY: 0,
-          data: { text: 'Central idea' },
+          data: { text: '' },
         },
       },
     },
@@ -45,5 +45,6 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ mapId: map.id }, { status: 201 });
 }
+
 
 

@@ -187,40 +187,59 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
       </div>
 
       <div className="mb-3 rounded-xl border border-stroke bg-white p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-body-color">Messaging Length</div>
-          <div className="text-[11px] font-semibold text-dark">
-            {MESSAGING_LENGTH_OPTIONS[safeLengthIndex].label}
-          </div>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={MESSAGING_LENGTH_OPTIONS.length - 1}
-          step={1}
-          value={safeLengthIndex}
-          onMouseDown={(e) => e.stopPropagation()}
-          onChange={(e) => {
-            const nextIndex = Number(e.target.value);
-            const nextValue = MESSAGING_LENGTH_OPTIONS[nextIndex]?.value ?? 'standard';
-            mindmap.updateNodeData(id, {
-              messagingLengthByPlatform: {
-                ...messagingLengthByPlatform,
-                [platform]: nextValue,
-              },
-            });
-          }}
-          className="nodrag w-full accent-blue-600"
-          aria-label={`Messaging length for ${platformLabel(platform)}`}
-        />
-        <div className="mt-2 grid grid-cols-5 text-[10px] text-body-color">
-          <span>Shortest</span>
-          <span className="text-center">Shorter</span>
-          <span className="text-center">Standard</span>
-          <span className="text-center">Longer</span>
-          <span className="text-right">Longest</span>
-        </div>
-      </div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-body-color">Messaging Length</div>
+                <div className="text-[11px] font-semibold text-dark">
+                  {MESSAGING_LENGTH_OPTIONS[safeLengthIndex].label}
+                </div>
+              </div>
+              <div className="relative mb-2">
+                <input
+                  type="range"
+                  min={0}
+                  max={MESSAGING_LENGTH_OPTIONS.length - 1}
+                  step={1}
+                  value={safeLengthIndex}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    const nextIndex = Number(e.target.value);
+                    const nextValue = MESSAGING_LENGTH_OPTIONS[nextIndex]?.value ?? 'standard';
+                    mindmap.updateNodeData(id, {
+                      messagingLengthByPlatform: {
+                        ...messagingLengthByPlatform,
+                        [platform]: nextValue,
+                      },
+                    });
+                  }}
+                  className="nodrag h-2 w-full appearance-none rounded-lg bg-gray-200 outline-none focus:outline-none disabled:opacity-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:active:scale-95"
+                  aria-label={`Messaging length for ${platformLabel(platform)}`}
+                />
+              </div>
+              <div className="grid grid-cols-5 gap-1">
+                {MESSAGING_LENGTH_OPTIONS.map((option, index) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      mindmap.updateNodeData(id, {
+                        messagingLengthByPlatform: {
+                          ...messagingLengthByPlatform,
+                          [platform]: option.value,
+                        },
+                      });
+                    }}
+                    className={[
+                      'rounded-lg py-1.5 text-[10px] font-medium transition-all',
+                      index === safeLengthIndex
+                        ? 'bg-primary text-white shadow-md'
+                        : 'bg-gray-50 text-body-color hover:bg-gray-100',
+                    ].join(' ')}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
       <button
         type="button"

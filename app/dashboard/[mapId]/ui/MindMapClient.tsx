@@ -166,27 +166,37 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   }
 
   function findNearestFreePosition(basePosition: { x: number; y: number }): { x: number; y: number } {
-    const clampedBase = clampPosition(basePosition);
-    if (!isPositionOccupied(clampedBase)) return clampedBase;
-
-    for (let ring = 1; ring <= 10; ring += 1) {
-      for (let dx = -ring; dx <= ring; dx += 1) {
+      const clampedBase = clampPosition(basePosition);
+      if (!isPositionOccupied(clampedBase)) return clampedBase;
+  
+      for (let ring = 1; ring <= 10; ring += 1) {
+        // First, check positions to the right (positive x direction)
         for (let dy = -ring; dy <= ring; dy += 1) {
-          if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+          const dx = ring;
           const candidate = clampPosition({
             x: clampedBase.x + dx * NODE_GRID_STEP_X,
             y: clampedBase.y + dy * NODE_GRID_STEP_Y,
           });
           if (!isPositionOccupied(candidate)) return candidate;
         }
+        // Then check other positions in the ring
+        for (let dx = -ring; dx <= ring; dx += 1) {
+          for (let dy = -ring; dy <= ring; dy += 1) {
+            if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+            const candidate = clampPosition({
+              x: clampedBase.x + dx * NODE_GRID_STEP_X,
+              y: clampedBase.y + dy * NODE_GRID_STEP_Y,
+            });
+            if (!isPositionOccupied(candidate)) return candidate;
+          }
+        }
       }
+  
+      return clampPosition({
+        x: clampedBase.x + NODE_GRID_STEP_X,
+        y: clampedBase.y + NODE_GRID_STEP_Y,
+      });
     }
-
-    return clampPosition({
-      x: clampedBase.x + NODE_GRID_STEP_X,
-      y: clampedBase.y + NODE_GRID_STEP_Y,
-    });
-  }
 
   function getViewportCenterPosition(): { x: number; y: number } {
     const reactFlow = reactFlowRef.current;
