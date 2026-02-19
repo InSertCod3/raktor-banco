@@ -6,6 +6,7 @@ import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import NodeAddPanel from './NodeAddPanel';
 
 type InsightInputNodeData = {
   text?: string;
@@ -37,6 +38,7 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
   const mindmap = useMindMap();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isAddPanelHovering, setIsAddPanelHovering] = useState(false);
   const [draftText, setDraftText] = useState(String(data?.text ?? ''));
   const [isHookTypeMenuOpen, setIsHookTypeMenuOpen] = useState(false);
   const [isCtaTypeMenuOpen, setIsCtaTypeMenuOpen] = useState(false);
@@ -70,7 +72,7 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
       }
       : {
         badge: 'Hook & CTA',
-        title: 'First-2-Second Grab',
+        title: "Grab the Attention",
         placeholder: 'Write a sharp opening hook, a "Did you know...?" line, and a clear CTA.',
         wrapperFocus: 'border-violet-300 bg-violet-50 ring-2 ring-violet-300/30',
         wrapper: 'border-stroke bg-white',
@@ -264,6 +266,50 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
           </div>
         </div>
       ) : null}
+      <NodeAddPanel
+        visible={isHovering || isAddPanelHovering}
+        title="Add Connected Node"
+        subtitle="Expand this branch with strategy or output."
+        onMouseEnter={() => setIsAddPanelHovering(true)}
+        onMouseLeave={() => setIsAddPanelHovering(false)}
+        actions={[
+          {
+            label: '+ Audience Pain',
+            description: 'Capture audience blockers',
+            onClick: () => mindmap.addChildNode(id, 'painpoint'),
+            className:
+              'nodrag rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-2 text-left text-xs font-semibold text-rose-700 transition hover:from-rose-100 hover:to-rose-50',
+          },
+          {
+            label: '+ Proof & Evidence',
+            description: 'Add proof points and outcomes',
+            onClick: () => mindmap.addChildNode(id, 'proofpoint'),
+            className:
+              'nodrag rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-2 text-left text-xs font-semibold text-sky-700 transition hover:from-sky-100 hover:to-sky-50',
+          },
+          {
+            label: '+ Voice & Tone',
+            description: 'Set style before generation',
+            onClick: () => mindmap.addChildNode(id, 'tone'),
+            className:
+              'nodrag rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-2 text-left text-xs font-semibold text-amber-700 transition hover:from-amber-100 hover:to-amber-50',
+          },
+          {
+            label: '+ Hook & CTA',
+            description: 'Define grab + call-to-action',
+            onClick: () => mindmap.addChildNode(id, 'hookcta'),
+            className:
+              'nodrag rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-3 py-2 text-left text-xs font-semibold text-violet-700 transition hover:from-violet-100 hover:to-violet-50',
+          },
+          {
+            label: '+ Social Draft',
+            description: 'Generate post content',
+            onClick: () => mindmap.addChildNode(id, 'social', { label: 'LinkedIn', platform: 'LINKEDIN' }),
+            className:
+              'nodrag rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:from-blue-100 hover:to-blue-50',
+          },
+        ]}
+      />
 
     </div>
   );

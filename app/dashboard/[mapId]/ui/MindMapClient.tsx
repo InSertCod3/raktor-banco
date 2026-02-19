@@ -69,6 +69,10 @@ const WORKSPACE_BOUNDS: [[number, number], [number, number]] = [
   [-6800, -6400],
   [6800, 6400],
 ];
+const NODE_COLLISION_X = 390;
+const NODE_COLLISION_Y = 280;
+const NODE_GRID_STEP_X = 360;
+const NODE_GRID_STEP_Y = 220;
 
 function clampPosition(position: { x: number; y: number }): { x: number; y: number } {
   return {
@@ -152,6 +156,53 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const normalizedTitle = mapTitle.trim() || "Untitled map";
   const hasUnsavedTitleChanges =
     loaded && normalizedTitle !== persistedTitleRef.current;
+
+  function isPositionOccupied(position: { x: number; y: number }): boolean {
+    return nodes.some(
+      (node) =>
+        Math.abs(node.position.x - position.x) < NODE_COLLISION_X &&
+        Math.abs(node.position.y - position.y) < NODE_COLLISION_Y,
+    );
+  }
+
+  function findNearestFreePosition(basePosition: { x: number; y: number }): { x: number; y: number } {
+    const clampedBase = clampPosition(basePosition);
+    if (!isPositionOccupied(clampedBase)) return clampedBase;
+
+    for (let ring = 1; ring <= 10; ring += 1) {
+      for (let dx = -ring; dx <= ring; dx += 1) {
+        for (let dy = -ring; dy <= ring; dy += 1) {
+          if (Math.abs(dx) !== ring && Math.abs(dy) !== ring) continue;
+          const candidate = clampPosition({
+            x: clampedBase.x + dx * NODE_GRID_STEP_X,
+            y: clampedBase.y + dy * NODE_GRID_STEP_Y,
+          });
+          if (!isPositionOccupied(candidate)) return candidate;
+        }
+      }
+    }
+
+    return clampPosition({
+      x: clampedBase.x + NODE_GRID_STEP_X,
+      y: clampedBase.y + NODE_GRID_STEP_Y,
+    });
+  }
+
+  function getViewportCenterPosition(): { x: number; y: number } {
+    const reactFlow = reactFlowRef.current;
+    if (reactFlow && typeof window !== "undefined") {
+      const centerScreen = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      if ("screenToFlowPosition" in reactFlow && typeof reactFlow.screenToFlowPosition === "function") {
+        return clampPosition(reactFlow.screenToFlowPosition(centerScreen));
+      }
+      const viewport = reactFlow.getViewport();
+      return clampPosition({
+        x: (centerScreen.x - viewport.x) / viewport.zoom,
+        y: (centerScreen.y - viewport.y) / viewport.zoom,
+      });
+    }
+    return { x: 0, y: 0 };
+  }
 
   useEffect(() => {
     toast(
@@ -335,65 +386,23 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       return visited;
     };
 
-    const findClearPosition = (baseX: number, baseY: number) => {
-      const isOccupied = (x: number, y: number) =>
-        nodes.some(
-          (node) =>
-            Math.abs(node.position.x - x) < 340 &&
-            Math.abs(node.position.y - y) < 170,
-        );
-
-      if (!isOccupied(baseX, baseY)) return { x: baseX, y: baseY };
-
-      for (let step = 1; step <= 12; step += 1) {
-        const downY = baseY + step * 120;
-        if (!isOccupied(baseX, downY)) return { x: baseX, y: downY };
-
-        const upY = baseY - step * 120;
-        if (!isOccupied(baseX, upY)) return { x: baseX, y: upY };
-      }
-
-      return { x: baseX, y: baseY + 140 };
-    };
-
     const id = createId();
     const childType: NodeType = type;
     let edgeSourceId = parent.id;
-    let position = {
-      x: parent.position.x + (options?.positionOffset?.x ?? 240),
-      y: parent.position.y + (options?.positionOffset?.y ?? 80),
-    };
+    let position = options?.positionOffset
+      ? {
+          x: parent.position.x + options.positionOffset.x,
+          y: parent.position.y + options.positionOffset.y,
+        }
+      : getViewportCenterPosition();
 
-    // Social nodes should appear at the far-right end of the connected branch.
+    // Social nodes should attach to the selected source node.
     if (childType === "social" && !options?.positionOffset) {
-      const connectedIds = collectConnectedNodeIds(parent.id);
-      const connectedNodes = nodes.filter((node) => connectedIds.has(node.id));
-      const rightMostNode = connectedNodes.reduce(
-        (current, node) => (node.position.x > current.position.x ? node : current),
-        parent,
-      );
-      const rightMostIsSocial = (rightMostNode.type ?? "").toLowerCase() === "social";
-      if (rightMostIsSocial) {
-        const incomingCandidates = edges
-          .filter((edge) => edge.source === rightMostNode.id || edge.target === rightMostNode.id)
-          .map((edge) => (edge.source === rightMostNode.id ? edge.target : edge.source))
-          .map((nodeId) => nodes.find((node) => node.id === nodeId))
-          .filter((node): node is Node => node !== undefined)
-          .filter((node) => connectedIds.has(node.id) && node.id !== rightMostNode.id)
-          .sort((a, b) => b.position.x - a.position.x);
-
-        edgeSourceId = incomingCandidates[0]?.id ?? parent.id;
-      } else {
-        edgeSourceId = rightMostNode.id;
-      }
-
-      position = findClearPosition(
-        rightMostNode.position.x + 420,
-        rightMostNode.position.y,
-      );
+      edgeSourceId = parent.id;
+      position = getViewportCenterPosition();
     }
 
-    const clampedPosition = clampPosition(position);
+    const clampedPosition = findNearestFreePosition(position);
 
     const child: Node = {
       id,
@@ -422,11 +431,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
   function addRootNode(type: NodeType, data?: Record<string, unknown>): string {
     const id = createId();
-    const offset = nodes.length * 40;
     const node: Node = {
       id,
       type,
-      position: clampPosition({ x: offset, y: offset }),
+      position: findNearestFreePosition(getViewportCenterPosition()),
       data: buildNodeData(type, data),
     };
 
@@ -490,10 +498,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     const suggestionNode: Node = {
       id: suggestionId,
       type: "suggestion",
-      position: clampPosition({
-        x: source.position.x + 280,
-        y: source.position.y - 20,
-      }),
+      position: findNearestFreePosition(getViewportCenterPosition()),
       data: {
         title: "Smart Advice",
         text: "I will analyze the connected parent node and suggest improvements.",

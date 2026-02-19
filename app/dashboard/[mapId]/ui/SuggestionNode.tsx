@@ -213,7 +213,7 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
   return (
     <div
       className={[
-        'w-[320px] rounded-2xl border border-violet-300 bg-gradient-to-br from-violet-50 to-indigo-50 p-4 shadow-1',
+        'relative w-[320px] rounded-2xl border border-violet-300 bg-gradient-to-br from-violet-50 to-indigo-50 p-4 shadow-1',
         isFocused ? 'ring-2 ring-violet-300/40' : '',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
@@ -301,3 +301,4 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
     </div>
   );
 }
+

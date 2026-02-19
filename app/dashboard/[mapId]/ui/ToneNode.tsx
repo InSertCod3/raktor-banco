@@ -6,6 +6,7 @@ import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import NodeAddPanel from './NodeAddPanel';
 
 type ToneOption =
   | 'Cooperative'
@@ -38,6 +39,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
   const mindmap = useMindMap();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
+  const [isAddPanelHovering, setIsAddPanelHovering] = useState(false);
   const [isToneMenuOpen, setIsToneMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const tone = data?.tone && TONE_OPTIONS.includes(data.tone) ? data.tone : undefined;
@@ -57,7 +59,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
   return (
     <div
       className={[
-        'w-[320px] rounded-2xl border p-4 shadow-1',
+        'relative w-[320px] rounded-2xl border p-4 shadow-1',
         isFocused ? 'border-amber-300 bg-amber-50 ring-2 ring-amber-300/30' : 'border-stroke bg-white',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
@@ -150,6 +152,43 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
           ) : null}
         </div>
       </div>
+      <NodeAddPanel
+        visible={isHovering || isAddPanelHovering}
+        title="Add Connected Node"
+        subtitle="Continue from tone into output and strategy."
+        onMouseEnter={() => setIsAddPanelHovering(true)}
+        onMouseLeave={() => setIsAddPanelHovering(false)}
+        actions={[
+          {
+            label: '+ Social Draft',
+            description: 'Generate post content',
+            onClick: () => mindmap.addChildNode(id, 'social', { label: 'LinkedIn', platform: 'LINKEDIN' }),
+            className:
+              'nodrag rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:from-blue-100 hover:to-blue-50',
+          },
+          {
+            label: '+ Audience Pain',
+            description: 'Capture audience blockers',
+            onClick: () => mindmap.addChildNode(id, 'painpoint'),
+            className:
+              'nodrag rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-2 text-left text-xs font-semibold text-rose-700 transition hover:from-rose-100 hover:to-rose-50',
+          },
+          {
+            label: '+ Proof & Evidence',
+            description: 'Add proof points and outcomes',
+            onClick: () => mindmap.addChildNode(id, 'proofpoint'),
+            className:
+              'nodrag rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-2 text-left text-xs font-semibold text-sky-700 transition hover:from-sky-100 hover:to-sky-50',
+          },
+          {
+            label: '+ Hook & CTA',
+            description: 'Define first-hook + CTA',
+            onClick: () => mindmap.addChildNode(id, 'hookcta'),
+            className:
+              'nodrag rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-3 py-2 text-left text-xs font-semibold text-violet-700 transition hover:from-violet-100 hover:to-violet-50',
+          },
+        ]}
+      />
     </div>
   );
 }

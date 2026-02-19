@@ -133,7 +133,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   return (
     <div
       className={[
-        'w-[360px] rounded-2xl border p-4 shadow-1',
+        'relative w-[360px] rounded-2xl border p-4 shadow-1',
         isFocused ? 'border-primary bg-blue-50 ring-2 ring-primary/20' : 'border-stroke bg-white',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}

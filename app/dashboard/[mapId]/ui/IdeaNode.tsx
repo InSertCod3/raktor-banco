@@ -6,6 +6,7 @@ import { useMindMap } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import NodeAddPanel from './NodeAddPanel';
 
 export type IdeaNodeType = Node<{ text?: string }, 'idea'>;
 
@@ -100,68 +101,50 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
           className="nodrag h-40 w-full rounded-xl border border-emerald-200 bg-white/90 p-3 text-sm text-dark outline-hidden placeholder:text-body-color focus:border-emerald-400"
         />
 
-        {isTextareaHovering || isBranchPopupHovering ? (
-          <div
-            className="absolute left-[calc(100%-2px)] top-1/2 z-20 -translate-y-1/2"
-            onMouseEnter={() => setIsBranchPopupHovering(true)}
-            onMouseLeave={() => setIsBranchPopupHovering(false)}
-          >
-            <div className="w-[240px] rounded-2xl border border-stone-200/90 bg-white p-3 shadow-[0_14px_34px_rgba(17,24,39,0.14)] backdrop-blur">
-              <div className="mb-2.5 px-1">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-body-color">Add Strategy Branch</div>
-                <div className="mt-1 text-xs text-slate-500">Capture friction, proof, and messaging style.</div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  type="button"
-                  className="nodrag rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-2 text-left text-xs font-semibold text-rose-700 transition hover:from-rose-100 hover:to-rose-50"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'painpoint')}
-                >
-                  + Audience Pain
-                  <div className="mt-0.5 text-[11px] font-medium text-rose-600/90">Add audience blockers and objections</div>
-                </button>
-                <button
-                  type="button"
-                  className="nodrag rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-2 text-left text-xs font-semibold text-sky-700 transition hover:from-sky-100 hover:to-sky-50"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'proofpoint')}
-                >
-                  + Proof & Evidence
-                  <div className="mt-0.5 text-[11px] font-medium text-sky-600/90">Add metrics, case studies, or proof</div>
-                </button>
-                <button
-                  type="button"
-                  className="nodrag rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-2 text-left text-xs font-semibold text-amber-700 transition hover:from-amber-100 hover:to-amber-50"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'tone')}
-                >
-                  + Voice & Tone
-                  <div className="mt-0.5 text-[11px] font-medium text-amber-700/90">Set the messaging voice for outputs</div>
-                </button>
-                <button
-                  type="button"
-                  className="nodrag rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-3 py-2 text-left text-xs font-semibold text-violet-700 transition hover:from-violet-100 hover:to-violet-50"
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={() => mindmap.addChildNode(id, 'hookcta')}
-                >
-                  + Hook & CTA
-                  <div className="mt-0.5 text-[11px] font-medium text-violet-700/90">Add a first-2-second hook and a clear call-to-action</div>
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-
-      <div className="mt-3">
-        <button
-          type="button"
-          className="nodrag w-full rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
-          onClick={() => mindmap.addChildNode(id, 'social', { label: 'LinkedIn', platform: 'LINKEDIN' })}
-        >
-          Create Social Draft
-        </button>
+        <NodeAddPanel
+          visible={isTextareaHovering || isBranchPopupHovering}
+          title="Add Branch Node"
+          subtitle="Add strategy or output nodes from this idea."
+          onMouseEnter={() => setIsBranchPopupHovering(true)}
+          onMouseLeave={() => setIsBranchPopupHovering(false)}
+          actions={[
+            {
+              label: '+ Audience Pain',
+              description: 'Add audience blockers and objections',
+              onClick: () => mindmap.addChildNode(id, 'painpoint'),
+              className:
+                'nodrag rounded-xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white px-3 py-2 text-left text-xs font-semibold text-rose-700 transition hover:from-rose-100 hover:to-rose-50',
+            },
+            {
+              label: '+ Proof & Evidence',
+              description: 'Add metrics, case studies, or proof',
+              onClick: () => mindmap.addChildNode(id, 'proofpoint'),
+              className:
+                'nodrag rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white px-3 py-2 text-left text-xs font-semibold text-sky-700 transition hover:from-sky-100 hover:to-sky-50',
+            },
+            {
+              label: '+ Voice & Tone',
+              description: 'Set the messaging voice for outputs',
+              onClick: () => mindmap.addChildNode(id, 'tone'),
+              className:
+                'nodrag rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white px-3 py-2 text-left text-xs font-semibold text-amber-700 transition hover:from-amber-100 hover:to-amber-50',
+            },
+            {
+              label: '+ Hook & CTA',
+              description: 'Add a first-2-second hook and clear CTA',
+              onClick: () => mindmap.addChildNode(id, 'hookcta'),
+              className:
+                'nodrag rounded-xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white px-3 py-2 text-left text-xs font-semibold text-violet-700 transition hover:from-violet-100 hover:to-violet-50',
+            },
+            {
+              label: '+ Social Draft',
+              description: 'Generate platform-ready social output',
+              onClick: () => mindmap.addChildNode(id, 'social', { label: 'LinkedIn', platform: 'LINKEDIN' }),
+              className:
+                'nodrag rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:from-blue-100 hover:to-blue-50',
+            },
+          ]}
+        />
       </div>
 
     </div>
