@@ -4,6 +4,7 @@ import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
 import { buildSuggestionPrompt } from '@/app/lib/prompts';
+import { checkUsageLimit } from '@/app/lib/usage';
 
 const SuggestSchema = z.object({
   mapId: z.string().min(1),
@@ -22,6 +23,22 @@ function collectTextValues(input: unknown): string[] {
 
 export async function POST(req: Request) {
   const userId = await getOrCreateCurrentUserId();
+  
+  // Check usage limit
+  const usageCheck = await checkUsageLimit(userId);
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Usage limit exceeded',
+        limit: usageCheck.limit,
+        currentUsage: usageCheck.usage,
+        tier: usageCheck.tier,
+        upgradeUrl: '/pricing',
+      },
+      { status: 429 }
+    );
+  }
+  
   const body = await req.json().catch(() => null);
   const parsed = SuggestSchema.safeParse(body);
   if (!parsed.success) {
@@ -90,19 +107,51 @@ export async function POST(req: Request) {
 
       try {
         const iterator = streamData.stream[Symbol.asyncIterator]();
+        let outputText = '';
+        let model = '';
+        
         while (true) {
           const next = await iterator.next();
           if (next.done) {
+            outputText = next.value.outputText;
+            model = next.value.model;
             send({
               type: 'done',
-              output: next.value.outputText,
-              model: next.value.model,
+              output: outputText,
+              model: model,
               provider: streamData.provider,
             });
             break;
           }
 
+          outputText += next.value;
           send({ type: 'delta', delta: next.value });
+        }
+        
+        // Record usage for the suggestion generation
+        const savedGeneration = await prisma.generatedContent.create({
+          data: {
+            nodeId: sourceNodeId,
+            platform: 'LINKEDIN', // Using LINKEDIN as default for suggestions
+            model,
+            prompt: `${prompt.system}\n\n${prompt.user}`,
+            output: outputText,
+            temperature: 0.2,
+            seed: null,
+            revision: 1,
+          },
+          select: { id: true },
+        });
+        
+        try {
+          await prisma.usageRecord.create({
+            data: {
+              userId,
+              generationId: savedGeneration.id,
+            },
+          });
+        } catch (usageError) {
+          console.error('Failed to record usage:', usageError);
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Suggestion generation failed.';

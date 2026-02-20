@@ -6,6 +6,7 @@ import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
 import { buildPlatformPrompt } from '@/app/lib/prompts';
 import { generateId } from '@/app/lib/utils';
+import { checkUsageLimit } from '@/app/lib/usage';
 
 const GenerateSchema = z.object({
   mapId: z.string().min(1),
@@ -52,6 +53,22 @@ function collectTextValues(input: unknown): string[] {
 
 export async function POST(req: Request) {
   const userId = await getOrCreateCurrentUserId();
+  
+  // Check usage limit
+  const usageCheck = await checkUsageLimit(userId);
+  if (!usageCheck.allowed) {
+    return NextResponse.json(
+      {
+        error: 'Usage limit exceeded',
+        limit: usageCheck.limit,
+        currentUsage: usageCheck.usage,
+        tier: usageCheck.tier,
+        upgradeUrl: '/pricing',
+      },
+      { status: 429 }
+    );
+  }
+  
   const body = await req.json().catch(() => null);
   const parsed = GenerateSchema.safeParse(body);
   if (!parsed.success) {
@@ -342,6 +359,19 @@ export async function POST(req: Request) {
             select: { id: true, type: true, positionX: true, positionY: true, data: true },
           }),
         ]);
+        
+        // Record usage for the generation - must be done after successful generation
+        // to ensure the generationId exists and the usage is properly counted
+        try {
+          const usageRecord = await prisma.usageRecord.create({
+            data: {
+              userId,
+              generationId: savedGeneration.id,
+            },
+          });
+        } catch (usageError) {
+          console.error('Failed to record usage:', usageError);
+        }
 
         send({
           type: 'done',

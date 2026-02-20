@@ -13,15 +13,17 @@ enum PlatformType {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  // For MVP: cookie-based anonymous identity.
-  // Unique, stable per visitor (not PII).
-  anonKey   String   @unique
+  // Clerk user ID for authentication
+  clerkUserId   String   @unique
 
-  maps      Map[]
+  // Relations
+  maps          Map[]
+  subscription  Subscription?
+  usageRecords  UsageRecord[]
 }
 
 model Map {
@@ -91,8 +93,49 @@ model GeneratedContent {
   seed         Int?
   revision     Int          @default(1)
 
+  // Usage tracking
+  usageRecord  UsageRecord?
+
   @@index([nodeId, platform])
 }
 
+enum SubscriptionTier {
+  FREE
+  CREATOR
+  PRO
+}
 
+model Subscription {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  tier         SubscriptionTier
+  isActive     Boolean  @default(true)
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+  
+  usageLimit   Int      // Monthly generation limit
+  mapLimit     Int      @default(10) // Total number of maps allowed
+  resetPeriod  String   @default("month") // "week" or "month"
+}
+
+model UsageRecord {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  generationId String   @unique
+  generatedContent GeneratedContent @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  
+  usageDate    DateTime @default(now())
+  
+  @@index([userId, usageDate])
+  @@index([userId, createdAt])
+}
 

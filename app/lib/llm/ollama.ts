@@ -1,11 +1,11 @@
 import { BaseLlmInterface, type LlmGenerateArgs, type LlmGenerateResult } from '@/app/lib/llm/base';
 
 function getOllamaHost(): string {
-  return process.env.OLLAMA_HOST?.trim() || 'http://127.0.0.1:11434';
+  return process.env.OLLAMA_HOST?.trim() || '';
 }
 
 export function getOllamaModelName(): string {
-  return process.env.OLLAMA_MODEL?.trim() || 'gemini-3-flash-preview:cloud';
+  return process.env.OLLAMA_MODEL?.trim() || '';
 }
 
 export class OllamaLlm extends BaseLlmInterface {

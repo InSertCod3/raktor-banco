@@ -9,6 +9,7 @@ import { faTrash } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
+import Link from 'next/link';
 
 type SocialNodeData = {
   label?: string;
@@ -44,6 +45,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [streamedOutput, setStreamedOutput] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
   const content = String(data?.content ?? '');
@@ -124,7 +126,12 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
       );
       setStreamedOutput('');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Generation failed.');
+      const errorMessage = e instanceof Error ? e.message : 'Generation failed.';
+      setError(errorMessage);
+      // Check if it's a usage limit error
+      if (errorMessage.includes('Usage limit exceeded')) {
+        setShowUpgradeModal(true);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -169,6 +176,38 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         itemName={data?.label || 'Social Draft'}
         phraseEnforce={false}
       />
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-md rounded-2xl border border-stroke bg-white p-6 shadow-2">
+            <div className="text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                <span className="text-3xl">⚠️</span>
+              </div>
+              <h3 className="mb-2 text-xl font-semibold text-dark">Usage Limit Reached</h3>
+              <p className="mb-6 text-body-color">
+                You've reached your monthly generation limit. Upgrade to continue creating content.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/pricing"
+                  className="w-full rounded-lg bg-primary py-3 text-center font-semibold text-white hover:bg-blue-dark"
+                  onClick={() => setShowUpgradeModal(false)}
+                >
+                  View Pricing Plans
+                </Link>
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="w-full rounded-lg border border-stroke py-3 text-center font-semibold text-body-color hover:bg-gray-1"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="mb-3 flex items-center gap-1 rounded-xl bg-gray-1 p-1">
         {(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM'] as Platform[]).map((item) => (

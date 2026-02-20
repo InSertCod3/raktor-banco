@@ -33,7 +33,7 @@ const Navbar = () => {
                   { href: "#home", label: "Home" },
                   { href: "/dashboard", label: "App" },
                   // { href: "#about", label: "About" },
-                  { href: "#pricing", label: "Pricing" },
+                  { href: "/pricing", label: "Pricing" },
                   // { href: "#team", label: "Team" },
                   { href: "#contact", label: "Contact" },
                   // { href: "/blog-grids", label: "Blog" },

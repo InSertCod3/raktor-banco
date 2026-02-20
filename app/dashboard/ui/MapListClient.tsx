@@ -125,7 +125,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createStepIndex, setCreateStepIndex] = useState(0);
   const [mapTitleInput, setMapTitleInput] = useState('');
-  const [createError, setCreateError] = useState<string | null>(null);
+  const [createError, setCreateError] = useState<React.ReactNode | null>(null);
   const [isCreatingMap, setIsCreatingMap] = useState(false);
   const [openingMapTitle, setOpeningMapTitle] = useState<string | null>(null);
 
@@ -199,7 +199,21 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
       });
 
       if (!res.ok) {
-        setCreateError('Could not create map. Please try again.');
+        const data = (await res.json().catch(() => null)) as { 
+          error?: string; 
+          limit?: number; 
+          currentMaps?: number; 
+          upgradeUrl?: string;
+        } | null;
+        
+        // Check if it's a limit error
+        if (data?.upgradeUrl && data?.limit !== undefined) {
+          setCreateError(
+            <>Map limit reached ({data.currentMaps}/{data.limit}). <Link href={data.upgradeUrl} className="text-primary hover:underline">Upgrade for more maps</Link></>
+          );
+        } else {
+          setCreateError(data?.error || 'Could not create map. Please try again.');
+        }
         setCreateStepIndex(0);
         return;
       }

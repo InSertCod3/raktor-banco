@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SignedIn, SignedOut, SignInButton, SignUpButton } from '@clerk/nextjs';
 import BackgroundGrid from '../components/BackgroundGrid';
 
 export default function LoginPage() {
@@ -17,54 +18,48 @@ export default function LoginPage() {
               Welcome back to your visual content workspace.
             </h1>
             <p className="mt-3 text-sm text-[#5f6861] sm:text-base">
-              This page is a UI boilerplate for upcoming SuperTokens authentication. Keep the style, replace handlers,
-              and connect the submit actions to SuperTokens sign in and sign up flows.
+              Sign in to access your maps and continue creating content.
             </p>
 
-            <div className="mt-6 space-y-4">
-              <div>
-                <label htmlFor="email" className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-[#687269]">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="you@company.com"
-                  className="w-full rounded-2xl border border-[#d4d0c4] bg-white px-4 py-3 text-sm text-[#2d3a33] outline-none placeholder:text-[#9aa39b] focus:border-[#6e8b73]"
-                />
-              </div>
+            <div className="mt-8">
+              <SignedIn>
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-6 text-center">
+                  <p className="text-sm text-emerald-800">
+                    You are already signed in. Redirecting to dashboard...
+                  </p>
+                </div>
+              </SignedIn>
 
-              <div>
-                <label
-                  htmlFor="password"
-                  className="mb-1 block text-xs font-semibold uppercase tracking-[0.15em] text-[#687269]"
-                >
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  className="w-full rounded-2xl border border-[#d4d0c4] bg-white px-4 py-3 text-sm text-[#2d3a33] outline-none placeholder:text-[#9aa39b] focus:border-[#6e8b73]"
-                />
-              </div>
-
-              <button
-                type="button"
-                className="w-full rounded-full bg-[#2d3a33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#243029]"
-              >
-                Sign in (boilerplate)
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-full border border-[#d4d0c4] bg-white/90 px-6 py-3 text-sm font-semibold text-[#2d3a33] transition hover:bg-white"
-              >
-                Continue with provider (boilerplate)
-              </button>
+              <SignedOut>
+                <div className="space-y-4">
+                  <SignInButton mode="modal">
+                    <button
+                      type="button"
+                      className="w-full rounded-full bg-[#2d3a33] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#243029]"
+                    >
+                      Sign in with Email
+                    </button>
+                  </SignInButton>
+                  
+                  <div className="relative flex items-center justify-center">
+                    <div className="h-px w-full bg-[#d4d0c4]"></div>
+                    <span className="absolute px-2 text-xs text-[#9aa39b]">or</span>
+                  </div>
+                  
+                  <SignInButton mode="modal">
+                    <button
+                      type="button"
+                      className="w-full rounded-full border border-[#d4d0c4] bg-white/90 px-6 py-3 text-sm font-semibold text-[#2d3a33] transition hover:bg-white"
+                    >
+                      Continue with Google
+                    </button>
+                  </SignInButton>
+                </div>
+              </SignedOut>
             </div>
 
-            <p className="mt-5 text-xs text-[#7b847d]">
-              TODO: replace button actions with SuperTokens APIs and route success to <code>/dashboard</code>.
+            <p className="mt-6 text-xs text-[#7b847d]">
+              New to MayDove? <Link href="/signup" className="font-semibold text-[#2d3a33] underline underline-offset-4">Create an account</Link>
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3 text-xs">
@@ -86,6 +81,7 @@ export default function LoginPage() {
                 'Node-level LinkedIn, Facebook and Instagram generation.',
                 'Regeneration history without losing context.',
                 'Reusable maps for ongoing campaigns.',
+                'Usage limits based on your subscription tier.',
               ].map((item) => (
                 <li key={item} className="rounded-2xl border border-[#e1ddd2] bg-white px-4 py-3">
                   {item}
@@ -94,11 +90,21 @@ export default function LoginPage() {
             </ul>
 
             <div className="mt-6 rounded-2xl border border-[#d4d0c4] bg-[#f9f8f4] p-4">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a938b]">Status</div>
-              <p className="mt-2 text-sm text-[#5f6861]">
-                Authentication backend is planned with SuperTokens. This screen is intentionally static until auth setup
-                is connected.
-              </p>
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a938b]">Pricing Plans</div>
+              <div className="mt-2 space-y-2 text-sm text-[#5f6861]">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-emerald-500"></span>
+                  <span className="font-semibold">Free Tier:</span> 8 generations/week
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-blue-500"></span>
+                  <span className="font-semibold">Creator ($19/mo):</span> 200 generations/month
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-purple-500"></span>
+                  <span className="font-semibold">Pro ($59/mo):</span> 500 generations/month
+                </div>
+              </div>
             </div>
           </aside>
         </div>

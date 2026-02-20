@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { prisma } from '@/app/lib/db';
-import { getCurrentUserId } from '@/app/lib/currentUser';
+import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import BackgroundGrid from '@/app/components/BackgroundGrid';
 import MapListClient from './ui/MapListClient';
+import { getUsageData, getUserSubscriptionTier } from '@/app/lib/usage';
+import { SubscriptionTier } from '@prisma/client';
 
 export default async function MindAppHome({
   searchParams,
@@ -14,9 +16,16 @@ export default async function MindAppHome({
 
   let maps: { id: string; title: string; updatedAt: string }[] = [];
   let dbError: string | null = null;
+  let userId: string | null = null;
 
   try {
-    const userId = await getCurrentUserId();
+    try {
+      userId = await getOrCreateCurrentUserId();
+    } catch (authError) {
+      // User not authenticated, continue with null userId
+      userId = null;
+    }
+    
     if (userId) {
       const dbMaps = await prisma.map.findMany({
         where: { userId },
@@ -30,7 +39,6 @@ export default async function MindAppHome({
         updatedAt: m.updatedAt.toISOString()
       }));
     }
-    // If no userId (no cookie yet), maps stays empty - that's fine, user will get cookie on first API call
   } catch (err) {
     console.log(err);
     dbError = 'Set DATABASE_URL and run npm run prisma:migrate to enable saving and loading maps.';
@@ -45,7 +53,35 @@ export default async function MindAppHome({
   const latestMapUpdateLabel = latestMapUpdate
     ? latestMapUpdate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : 'No edits yet';
-  const currentPlanLabel = 'Free';
+  
+  // Get usage data and subscription info
+  let usageData: any = null;
+  let subscriptionTier = 'FREE' as const;
+  let usageLimit = 8;
+  let currentUsage = 0;
+  let mapLimit = 2;
+  let currentMaps = 0;
+  
+  if (userId) {
+    try {
+      usageData = await getUsageData(userId);
+      subscriptionTier = usageData.tier;
+      usageLimit = usageData.limit;
+      currentUsage = usageData.currentUsage;
+      mapLimit = usageData.mapLimit ?? 2;
+      currentMaps = usageData.currentMaps ?? 0;
+    } catch (err) {
+      console.log('Error fetching usage data:', err);
+    }
+  }
+  
+  // Get plan label based on tier
+  const planLabels: Record<string, string> = {
+    FREE: 'Free Tier',
+    CREATOR: 'Creator ($19/mo)',
+    PRO: 'Pro ($59/mo)',
+  };
+  const currentPlanLabel = planLabels[subscriptionTier] || 'Free Tier';
 
   return (
     <main className="relative min-h-dvh overflow-hidden bg-[#f6f5f1] font-['Space_Grotesk']">
@@ -110,7 +146,17 @@ export default async function MindAppHome({
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
                 <div className="text-xs uppercase tracking-[0.14em] text-body-color">Total maps</div>
-                <div className="mt-1 text-xl font-semibold text-dark">{maps.length}</div>
+                <div className="mt-1 flex items-center justify-between">
+                  <div className="text-xl font-semibold text-dark">{maps.length}</div>
+                  {subscriptionTier === 'FREE' && mapLimit && (
+                    <span className="text-xs text-body-color">/ {mapLimit}</span>
+                  )}
+                </div>
+                {subscriptionTier === 'FREE' && mapLimit && maps.length >= mapLimit && (
+                  <Link href="/pricing" className="mt-1 inline-block text-xs text-primary hover:underline">
+                    Upgrade for more
+                  </Link>
+                )}
               </div>
               <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
                 <div className="text-xs uppercase tracking-[0.14em] text-body-color">Updated (7d)</div>
@@ -128,6 +174,44 @@ export default async function MindAppHome({
                 </div>
                 <div className="mt-2 text-xs text-body-color">Includes core map creation and LinkedIn/Facebook/Instagram generation.</div>
               </div>
+              
+              {/* Usage Metrics */}
+              <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
+                <div className="text-xs uppercase tracking-[0.14em] text-body-color">Generations used</div>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="text-sm font-semibold text-dark">
+                    {currentUsage} <span className="text-xs text-body-color">/ {usageLimit}</span>
+                  </div>
+                  <div className="text-xs text-body-color">
+                    {subscriptionTier === 'FREE' ? 'weekly' : 'monthly'}
+                  </div>
+                </div>
+                <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
+                  <div
+                    className={`h-2 rounded-full ${
+                      currentUsage >= usageLimit
+                        ? 'bg-red-500'
+                        : subscriptionTier === 'FREE'
+                          ? 'bg-emerald-500'
+                          : subscriptionTier === 'CREATOR'
+                            ? 'bg-blue-500'
+                            : 'bg-purple-500'
+                    }`}
+                    style={{ width: `${Math.min((currentUsage / usageLimit) * 100, 100)}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-body-color">
+                  {currentUsage >= usageLimit
+                    ? (
+                      <span>
+                        Usage limit reached.{' '}
+                        <Link href="/pricing" className="text-primary hover:underline">Upgrade for more</Link>
+                      </span>
+                    )
+                    : `${usageLimit - currentUsage} generations remaining`}
+                </div>
+              </div>
+              
               <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
                 <div className="text-xs uppercase tracking-[0.14em] text-body-color">Last activity</div>
                 <div className="mt-1 text-sm font-semibold text-dark">{latestMapUpdateLabel}</div>
