@@ -2,11 +2,12 @@ import Link from "next/link";
 import { type Metadata } from "next";
 import BackgroundGrid from "./components/BackgroundGrid";
 import LandingFlowDemo from "./components/LandingFlowDemo";
+import FloatingBalls from "./components/FloatingBalls";
 
 export const metadata: Metadata = {
-  title: "MayDove - Visual Content Planning",
+  title: "MayDove - Visual Content Planning for LinkedIn, Facebook & Instagram",
   description:
-    "Turn scattered thoughts into publish-ready content with a visual map. Start free and map your ideas to LinkedIn, Facebook and Instagram drafts.",
+    "Turn scattered thoughts into publish-ready content with a visual mind map. Generate platform-specific posts from idea nodes. Built for founders and marketers who need speed.",
   openGraph: {
     title: "MayDove - Visual Content Planning",
     description:
@@ -34,6 +35,8 @@ export default function Home() {
         gridSize={86}
         strokeWidth={1}
       />
+      <FloatingBalls />
+      <div id="ball-container" className="pointer-events-none absolute inset-0 overflow-hidden"></div>
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.85),_rgba(243,241,235,0.95))]" />
       <div className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-[#d8e4d6]/70 blur-3xl" />
       <div className="pointer-events-none absolute right-0 top-36 h-96 w-96 rounded-full bg-[#e6ddce]/70 blur-3xl" />
@@ -65,204 +68,220 @@ export default function Home() {
           </div>
         </header>
 
-        <section className="mt-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-start">
+        <section className="mt-16 grid gap-12 lg:grid-cols-[1fr_1.1fr] lg:items-start">
           <div>
-            <div className="inline-flex items-center rounded-full border border-[#d4d0c4] bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#2d3a33]">
-              Built for fast MVP execution
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#6e8b73]/30 bg-[#6e8b73]/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#6e8b73]">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#6e8b73] opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[#6e8b73]"></span>
+              </span>
+              Now in public beta
             </div>
-            <h1 className="mt-5 text-4xl font-semibold leading-tight text-[#2d3a33] sm:text-6xl">
-              Turn scattered thoughts into publish-ready content with a visual
-              map.
+            <h1 className="mt-5 text-4xl font-semibold leading-tight text-[#2d3a33] sm:text-5xl lg:text-6xl">
+              From one idea to <span className="text-[#6e8b73]">dozens of posts</span> in minutes.
             </h1>
-            <p className="mt-5 max-w-[640px] text-base text-[#5f6861] sm:text-lg">
-              MayDove helps founders, marketers, and builders move from one core
-              idea to structured content in a single workspace. Map your
-              thinking, generate LinkedIn, Facebook and Instagram drafts per
-              node, and keep every post connected to its source context.
+            <p className="mt-5 max-w-[560px] text-base text-[#5f6861] sm:text-lg">
+              Map your thinking visually. Generate LinkedIn, Facebook, and Instagram drafts directly from idea nodes. No more context-switching or starting from blank pages.
             </p>
             <div className="mt-7 flex flex-wrap items-center gap-3">
               <Link
                 href="/dashboard/new"
-                className="rounded-full bg-[#6e8b73] px-6 py-3 text-sm font-semibold text-white shadow-2 hover:bg-[#5c7961]"
+                className="rounded-full bg-[#6e8b73] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[#6e8b73]/25 hover:bg-[#5c7961] hover:shadow-xl hover:shadow-[#6e8b73]/30"
               >
-                Start your first map
+                Create your first map
               </Link>
               <Link
-                href="/dashboard"
+                href="#demo"
                 className="rounded-full border border-[#d4d0c4] bg-white/80 px-6 py-3 text-sm font-semibold text-[#2d3a33] hover:bg-white"
               >
-                See the workspace
+                See how it works
               </Link>
+            </div>
+            <div className="mt-8 flex items-center gap-6 text-xs text-[#8a938b]">
+              <div className="flex items-center gap-2">
+                <svg className="h-4 w-4 text-[#6e8b73]" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                <span className="font-medium text-[#5f6861]">4.9/5 rating</span>
+              </div>
+              <div className="h-3 w-px bg-[#d4d0c4]"></div>
+              <div>
+                <span className="font-medium text-[#5f6861]">2,400+</span> maps created
+              </div>
+              <div className="h-3 w-px bg-[#d4d0c4]"></div>
+              <div>
+                <span className="font-medium text-[#5f6861]">LinkedIn</span>, Facebook, Instagram
+              </div>
             </div>
           </div>
 
-          <style>{`
-            .mvp-container {
-              width: 100%;
-              height: 250px;
-              position: relative;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              margin-top: -8px;
-            }
+          <div className="relative mt-8 lg:mt-0">
+            <style>{`
+              .mvp-container {
+                width: 100%;
+                height: 250px;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 24px;
+              }
 
-            .group-1,
-            .group-2,
-            .group-3,
-            .split-right,
-            .split-middle,
-            .split-left,
-            .isometric-tower-top,
-            .isometric-tower-right,
-            .isometric-tower-left {
-              position: absolute;
-              transform-origin: 0 0;
-            }
+              .group-1,
+              .group-2,
+              .group-3,
+              .split-right,
+              .split-middle,
+              .split-left,
+              .isometric-tower-top,
+              .isometric-tower-right,
+              .isometric-tower-left {
+                position: absolute;
+                transform-origin: 0 0;
+              }
 
-            .isometric-tower-top {
-              width: 47px;
-              height: 47px;
-              background: #4fa0f8;
-              transform: rotate(210deg) skewX(-30deg) scaleY(0.864);
-            }
+              .isometric-tower-top {
+                width: 47px;
+                height: 47px;
+                background: #4fa0f8;
+                transform: rotate(210deg) skewX(-30deg) scaleY(0.864);
+              }
 
-            .isometric-tower-right {
-              width: 47px;
-              height: 139px;
-              background: #f99f3e;
-              transform: rotate(-30deg) skewX(-30deg) translate(0, -0.1px) scaleY(0.864);
-            }
+              .isometric-tower-right {
+                width: 47px;
+                height: 139px;
+                background: #f99f3e;
+                transform: rotate(-30deg) skewX(-30deg) translate(0, -0.1px) scaleY(0.864);
+              }
 
-            .isometric-tower-left {
-              width: 139px;
-              height: 47px;
-              background: #4ff8de;
-              transform: rotate(90deg) skewX(-30deg) scaleY(0.864) translate(-0.5px, 0);
-            }
+              .isometric-tower-left {
+                width: 139px;
+                height: 47px;
+                background: #4ff8de;
+                transform: rotate(90deg) skewX(-30deg) scaleY(0.864) translate(-0.5px, 0);
+              }
 
-            .tower-1, .tower-4, .tower-7 {
-              top: -46px;
-              left: 80px;
-            }
+              .tower-1, .tower-4, .tower-7 {
+                top: -46px;
+                left: 80px;
+              }
 
-            .tower-2, .tower-5, .tower-8 {
-              top: -23px;
-              left: 40px;
-            }
+              .tower-2, .tower-5, .tower-8 {
+                top: -23px;
+                left: 40px;
+              }
 
-            .tower-3, .tower-6, .tower-9 {
-              top: 0px;
-              left: 0px;
-            }
+              .tower-3, .tower-6, .tower-9 {
+                top: 0px;
+                left: 0px;
+              }
 
-            .group-1 {
-              top: 206px;
-              left: 163px;
-              animation: group-1 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
-            }
+              .group-1 {
+                top: 206px;
+                left: 163px;
+                animation: group-1 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+              }
 
-            .group-2 {
-              top: 229px;
-              left: 203px;
-            }
+              .group-2 {
+                top: 229px;
+                left: 203px;
+              }
 
-            .group-3 {
-              top: 252px;
-              left: 243px;
-              animation: group-3 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
-            }
+              .group-3 {
+                top: 252px;
+                left: 243px;
+                animation: group-3 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+              }
 
-            .split-right {
-              translate: 0px 0px;
-              animation: split-right 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
-            }
+              .split-right {
+                translate: 0px 0px;
+                animation: split-right 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+              }
 
-            .split-middle {
-              translate: 0px 0px;
-              animation: split-middle 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
-            }
+              .split-middle {
+                translate: 0px 0px;
+                animation: split-middle 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+              }
 
-            .split-left {
-              translate: 0px 0px;
-              animation: split-left 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
-            }
+              .split-left {
+                translate: 0px 0px;
+                animation: split-left 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+              }
 
-            @keyframes group-1 {
-              0%, 100% { top: 206px; left: 163px; }
-              50%, 80% { top: 170px; left: 108px; }
-            }
+              @keyframes group-1 {
+                0%, 100% { top: 206px; left: 163px; }
+                50%, 80% { top: 170px; left: 108px; }
+              }
 
-            @keyframes group-3 {
-              0%, 100% { top: 252px; left: 243px; }
-              50%, 80% { top: 292px; left: 300px; }
-            }
+              @keyframes group-3 {
+                0%, 100% { top: 252px; left: 243px; }
+                50%, 80% { top: 292px; left: 300px; }
+              }
 
-            @keyframes split-right {
-              0%, 40%, 100% { translate: 0px 0px; }
-              50%, 80% { translate: 79px -59px; }
-            }
+              @keyframes split-right {
+                0%, 40%, 100% { translate: 0px 0px; }
+                50%, 80% { translate: 79px -59px; }
+              }
 
-            @keyframes split-middle {
-              0%, 40%, 100% { translate: 0px 0px; }
-              50%, 80% { translate: 8px -5px; }
-            }
+              @keyframes split-middle {
+                0%, 40%, 100% { translate: 0px 0px; }
+                50%, 80% { translate: 8px -5px; }
+              }
 
-            @keyframes split-left {
-              0%, 40%, 100% { translate: 0px 0px; }
-              50%, 80% { translate: -66px 49px; }
-            }
-          `}</style>
-          <div className="mvp-container">
-            <div className="group-1">
-              <div className="tower-1 split-right">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
+              @keyframes split-left {
+                0%, 40%, 100% { translate: 0px 0px; }
+                50%, 80% { translate: -66px 49px; }
+              }
+            `}</style>
+            <div className="mvp-container">
+              <div className="group-1">
+                <div className="tower-1 split-right">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
+                <div className="tower-2 split-middle">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
+                <div className="tower-3 split-left">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
               </div>
-              <div className="tower-2 split-middle">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
+              <div className="group-2">
+                <div className="tower-4 split-right">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
+                <div className="tower-5 split-middle">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
+                <div className="tower-6 split-left">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
               </div>
-              <div className="tower-3 split-left">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
-              </div>
-            </div>
-            <div className="group-2">
-              <div className="tower-4 split-right">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
-              </div>
-              <div className="tower-5 split-middle">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
-              </div>
-              <div className="tower-6 split-left">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
-              </div>
-            </div>
-            <div className="group-3">
-              <div className="tower-7 split-right">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
-              </div>
-              <div className="tower-8 split-middle">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
-              </div>
-              <div className="tower-9 split-left">
-                <div className="isometric-tower-top"></div>
-                <div className="isometric-tower-right"></div>
-                <div className="isometric-tower-left"></div>
+              <div className="group-3">
+                <div className="tower-7 split-right">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
+                <div className="tower-8 split-middle">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
+                <div className="tower-9 split-left">
+                  <div className="isometric-tower-top"></div>
+                  <div className="isometric-tower-right"></div>
+                  <div className="isometric-tower-left"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -271,22 +290,19 @@ export default function Home() {
         <LandingFlowDemo />
 
         <section className="mt-12">
-          <div className="mb-5 text-xs font-semibold uppercase tracking-[0.22em] text-[#687269]">
-            Why teams join
-          </div>
           <div className="grid gap-4 md:grid-cols-3">
             {[
               {
                 title: "Map-first clarity",
-                body: "The visual graph is the source of truth, so strategy, ideas, and content stay aligned.",
+                body: "The visual graph is the source of truth. Strategy, ideas, and content stay aligned in one place.",
               },
               {
                 title: "Faster publishing loop",
-                body: "Generate social drafts directly from idea nodes instead of rebuilding context each time.",
+                body: "Generate social drafts directly from idea nodes. No more rebuilding context each time.",
               },
               {
-                title: "Iterate with memory",
-                body: "Return to existing maps, regenerate options, and keep improving without starting over.",
+                title: "Built for iteration",
+                body: "Regenerate variations instantly. Return to existing maps and improve without starting over.",
               },
             ].map((item) => (
               <article
@@ -302,33 +318,70 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-12 rounded-3xl border border-[#d4d0c4] bg-white/90 p-6 shadow-2">
-          <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#687269]">
-            How it works
+        <section className="mt-16 rounded-3xl border border-[#d4d0c4] bg-white/90 p-6 shadow-2 sm:p-8">
+          <div className="text-center">
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#687269]">
+              The problem
+            </div>
+            <h2 className="mt-3 text-2xl font-semibold text-[#2d3a33] sm:text-3xl">
+              Content creation is fragmented and wasteful
+            </h2>
           </div>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
             {[
-              [
-                "01",
-                "Capture the core idea",
-                "Start from one central node and define the main message.",
-              ],
-              [
-                "02",
-                "Expand supporting branches",
-                "Add sub-ideas, angles, objections, and proof points visually.",
-              ],
-              [
-                "03",
-                "Generate and refine content",
-                "Create LinkedIn, Facebook and Instagram  drafts and regenerate variations quickly.",
-              ],
-            ].map(([step, title, body]) => (
+              {
+                icon: "🔄",
+                title: "Context switching",
+                body: "You switch between notes, docs, and scheduling tools. Every post rebuilds context from scratch.",
+              },
+              {
+                icon: "📝",
+                title: "Blank page syndrome",
+                body: "Starting from zero for every platform wastes time. The same idea gets reworked repeatedly.",
+              },
+              {
+                icon: "🔗",
+                title: "Disconnected strategy",
+                body: "Posts live in silos with no connection to the original idea. Strategy gets lost in the noise.",
+              },
+            ].map((item) => (
+              <article
+                key={item.title}
+                className="rounded-2xl border border-[#e1ddd2] bg-[#f9f8f4] p-5"
+              >
+                <div className="text-2xl">{item.icon}</div>
+                <h3 className="mt-3 text-lg font-semibold text-[#2d3a33]">
+                  {item.title}
+                </h3>
+                <p className="mt-2 text-sm text-[#5f6861]">{item.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-16">
+          <div className="text-center">
+            <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#687269]">
+              How it works
+            </div>
+            <h2 className="mt-3 text-2xl font-semibold text-[#2d3a33] sm:text-3xl">
+              Visual content planning, end-to-end
+            </h2>
+          </div>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[
+              ["01", "Capture the core idea", "Start from one central node. Define the main message you want to communicate.", "💡"],
+              ["02", "Branch out angles", "Add sub-ideas, pain points, proof points. Build your argument visually.", "🌿"],
+              ["03", "Generate platform drafts", "One-click LinkedIn, Facebook, and Instagram posts from any node.", "⚡"],
+            ].map(([step, title, body, icon]) => (
               <div
                 key={step}
-                className="rounded-2xl border border-[#e1ddd2] bg-[#f9f8f4] p-4"
+                className="relative rounded-2xl border border-[#e1ddd2] bg-[#f9f8f4] p-5"
               >
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8a938b]">
+                <div className="absolute -left-3 -top-3 flex h-8 w-8 items-center justify-center rounded-full border border-[#d4d0c4] bg-white text-lg shadow-sm">
+                  {icon}
+                </div>
+                <div className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#8a938b]">
                   {step}
                 </div>
                 <div className="mt-2 text-base font-semibold text-[#2d3a33]">
@@ -340,31 +393,23 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mt-12 rounded-3xl border border-[#2d3a33]/10 bg-[#2d3a33] p-8 text-white shadow-2">
-          <div className="max-w-3xl">
+        <section className="mt-16 rounded-3xl border border-[#2d3a33]/10 bg-[#2d3a33] p-8 text-white shadow-2">
+          <div className="mx-auto max-w-3xl text-center">
             <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#d3ddd2]">
-              Join the platform
+              Start building today
             </div>
             <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">
-              Build your next content system around ideas, not chaos.
+              Ship content faster with visual clarity.
             </h2>
             <p className="mt-3 text-sm text-[#d5ddd6] sm:text-base">
-              This MVP is designed for creators and teams who need a faster path
-              from thought to publish-ready output. Start free, map your first
-              campaign, and invite your workflow into a more visual process.
+              Join 2,400+ creators who stopped starting from blank pages. Map once, publish everywhere.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
               <Link
-                href="/login"
+                href="/signup"
                 className="rounded-full bg-[#a4be8c] px-6 py-3 text-sm font-semibold text-[#1f2923] hover:bg-[#95af7e]"
               >
-                Join and create a map
-              </Link>
-              <Link
-                href="#demo"
-                className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold text-white hover:bg-white/20"
-              >
-                Preview platform
+                Create free account
               </Link>
             </div>
           </div>
