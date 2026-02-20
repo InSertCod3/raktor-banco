@@ -1,6 +1,6 @@
 ## MayDove MVP
 
-Visual-first mind mapping with platform-aware content generation (LinkedIn + Facebook).
+Visual-first mind mapping with platform-aware content generation (LinkedIn + Facebook + Instagram).
 
 ### Tech
 

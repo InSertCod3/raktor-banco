@@ -3,6 +3,7 @@ import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import BackgroundGrid from '@/app/components/BackgroundGrid';
 import MapListClient from './ui/MapListClient';
+import LogoutButton from '@/app/components/LogoutButton';
 import { getUsageData, getUserSubscriptionTier } from '@/app/lib/usage';
 import { SubscriptionTier } from '@prisma/client';
 
@@ -99,7 +100,8 @@ export default async function MindAppHome({
             <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">
               {dbError ? 'Database offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
             </span>
-            <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">LinkedIn + Facebook</span>
+            <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">LinkedIn + Facebook + instagram</span>
+            <LogoutButton />
             <Link
               href="/dashboard?create=1"
               className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 transition hover:bg-dark-2"

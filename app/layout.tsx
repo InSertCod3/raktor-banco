@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './css/input.css';
 import '@xyflow/react/dist/style.css';
 import { Toaster } from 'react-hot-toast';
+import { ClerkProvider } from '@clerk/nextjs';
 
 export const metadata: Metadata = {
   title: 'MayDove | Visual Content Ideation',
@@ -14,12 +15,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body>
-        {children}
-        <Toaster />
-      </body>
-      <script src="//code.tidio.co/ldvmha19kg5t6vuilfqjatks5xmkazk6.js" async></script>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body>
+          {children}
+          <Toaster />
+        </body>
+        <script src="//code.tidio.co/ldvmha19kg5t6vuilfqjatks5xmkazk6.js" async></script>
+      </html>
+    </ClerkProvider>
   );
 }

@@ -45,15 +45,6 @@ export default function LoginPage() {
                     <div className="h-px w-full bg-[#d4d0c4]"></div>
                     <span className="absolute px-2 text-xs text-[#9aa39b]">or</span>
                   </div>
-                  
-                  <SignInButton mode="modal">
-                    <button
-                      type="button"
-                      className="w-full rounded-full border border-[#d4d0c4] bg-white/90 px-6 py-3 text-sm font-semibold text-[#2d3a33] transition hover:bg-white"
-                    >
-                      Continue with Google
-                    </button>
-                  </SignInButton>
                 </div>
               </SignedOut>
             </div>
@@ -67,7 +58,7 @@ export default function LoginPage() {
                 Back to landing
               </Link>
               <span className="text-[#9aa39b]">•</span>
-              <Link href="/dashboard" className="font-semibold text-[#2d3a33] underline underline-offset-4">
+              <Link href="/#demo" className="font-semibold text-[#2d3a33] underline underline-offset-4">
                 Preview platform
               </Link>
             </div>

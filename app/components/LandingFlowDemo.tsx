@@ -197,7 +197,7 @@ export default function LandingFlowDemo() {
   }, [setEdges, setNodes]);
 
   return (
-    <section className="mt-12 rounded-3xl border border-[#d4d0c4] bg-white/90 p-4 shadow-2 sm:p-6">
+    <section id="demo" className="mt-12 rounded-3xl border border-[#d4d0c4] bg-white/90 p-4 shadow-2 sm:p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs font-semibold uppercase tracking-[0.22em] text-[#687269]">Interactive demo</div>
