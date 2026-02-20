@@ -57,7 +57,7 @@ export default function Home() {
               Open app
             </Link>
             <Link
-              href="/login"
+              href="/signup"
               className="rounded-full bg-[#2d3a33] px-5 py-2 font-semibold uppercase tracking-wide text-white shadow-2 hover:bg-[#243029]"
             >
               Join now

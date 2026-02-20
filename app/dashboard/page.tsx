@@ -101,13 +101,24 @@ export default async function MindAppHome({
               {dbError ? 'Database offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
             </span>
             <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">LinkedIn + Facebook + instagram</span>
-            <LogoutButton />
             <Link
               href="/dashboard?create=1"
               className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 transition hover:bg-dark-2"
             >
               New map
             </Link>
+            {/* User Menu */}
+            <div className="relative group">
+              <button className="flex items-center gap-2 rounded-full border border-stroke bg-white/80 px-2 py-1.5 transition hover:bg-white">
+                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-200 to-amber-200" />
+                <svg className="h-4 w-4 text-body-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute right-0 top-full z-50 mt-1 hidden w-40 rounded-xl border border-stroke bg-white py-1 shadow-lg group-hover:block">
+                <LogoutButton />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -143,7 +154,6 @@ export default async function MindAppHome({
                 <div className="text-xs font-semibold uppercase tracking-[0.2em] text-body-color">Start From Your Map</div>
                 <div className="mt-2 text-lg font-semibold text-dark">Account snapshot</div>
               </div>
-              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-blue-200 to-amber-200" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl border border-stroke bg-white px-4 py-3 shadow-1">
