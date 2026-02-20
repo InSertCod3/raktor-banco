@@ -96,27 +96,176 @@ export default function Home() {
             </div>
           </div>
 
-          <aside className="rounded-3xl border border-[#d4d0c4] bg-white/85 p-6 shadow-2 backdrop-blur">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[#687269]">
-              MVP includes
+          <style>{`
+            .mvp-container {
+              width: 100%;
+              height: 250px;
+              position: relative;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin-top: -8px;
+            }
+
+            .group-1,
+            .group-2,
+            .group-3,
+            .split-right,
+            .split-middle,
+            .split-left,
+            .isometric-tower-top,
+            .isometric-tower-right,
+            .isometric-tower-left {
+              position: absolute;
+              transform-origin: 0 0;
+            }
+
+            .isometric-tower-top {
+              width: 47px;
+              height: 47px;
+              background: #4fa0f8;
+              transform: rotate(210deg) skewX(-30deg) scaleY(0.864);
+            }
+
+            .isometric-tower-right {
+              width: 47px;
+              height: 139px;
+              background: #f99f3e;
+              transform: rotate(-30deg) skewX(-30deg) translate(0, -0.1px) scaleY(0.864);
+            }
+
+            .isometric-tower-left {
+              width: 139px;
+              height: 47px;
+              background: #4ff8de;
+              transform: rotate(90deg) skewX(-30deg) scaleY(0.864) translate(-0.5px, 0);
+            }
+
+            .tower-1, .tower-4, .tower-7 {
+              top: -46px;
+              left: 80px;
+            }
+
+            .tower-2, .tower-5, .tower-8 {
+              top: -23px;
+              left: 40px;
+            }
+
+            .tower-3, .tower-6, .tower-9 {
+              top: 0px;
+              left: 0px;
+            }
+
+            .group-1 {
+              top: 206px;
+              left: 163px;
+              animation: group-1 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+            }
+
+            .group-2 {
+              top: 229px;
+              left: 203px;
+            }
+
+            .group-3 {
+              top: 252px;
+              left: 243px;
+              animation: group-3 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+            }
+
+            .split-right {
+              translate: 0px 0px;
+              animation: split-right 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+            }
+
+            .split-middle {
+              translate: 0px 0px;
+              animation: split-middle 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+            }
+
+            .split-left {
+              translate: 0px 0px;
+              animation: split-left 5s cubic-bezier(0.68, -0.41, 0.265, 1) infinite;
+            }
+
+            @keyframes group-1 {
+              0%, 100% { top: 206px; left: 163px; }
+              50%, 80% { top: 170px; left: 108px; }
+            }
+
+            @keyframes group-3 {
+              0%, 100% { top: 252px; left: 243px; }
+              50%, 80% { top: 292px; left: 300px; }
+            }
+
+            @keyframes split-right {
+              0%, 40%, 100% { translate: 0px 0px; }
+              50%, 80% { translate: 79px -59px; }
+            }
+
+            @keyframes split-middle {
+              0%, 40%, 100% { translate: 0px 0px; }
+              50%, 80% { translate: 8px -5px; }
+            }
+
+            @keyframes split-left {
+              0%, 40%, 100% { translate: 0px 0px; }
+              50%, 80% { translate: -66px 49px; }
+            }
+          `}</style>
+          <div className="mvp-container">
+            <div className="group-1">
+              <div className="tower-1 split-right">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+              <div className="tower-2 split-middle">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+              <div className="tower-3 split-left">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
             </div>
-            <ul className="mt-4 space-y-3 text-sm text-[#5f6861]">
-              {[
-                "Create a central idea node in seconds",
-                "Expand branches visually with connected context",
-                "Generate LinkedIn, Facebook, and Instagram drafts per node",
-                "Regenerate variations without losing structure",
-                "Reuse and keep editing maps over time",
-              ].map((item) => (
-                <li
-                  key={item}
-                  className="rounded-2xl border border-[#e1ddd2] bg-white px-4 py-3"
-                >
-                  <span className="font-semibold text-[#2d3a33]">•</span> {item}
-                </li>
-              ))}
-            </ul>
-          </aside>
+            <div className="group-2">
+              <div className="tower-4 split-right">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+              <div className="tower-5 split-middle">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+              <div className="tower-6 split-left">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+            </div>
+            <div className="group-3">
+              <div className="tower-7 split-right">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+              <div className="tower-8 split-middle">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+              <div className="tower-9 split-left">
+                <div className="isometric-tower-top"></div>
+                <div className="isometric-tower-right"></div>
+                <div className="isometric-tower-left"></div>
+              </div>
+            </div>
+          </div>
         </section>
 
         <LandingFlowDemo />
