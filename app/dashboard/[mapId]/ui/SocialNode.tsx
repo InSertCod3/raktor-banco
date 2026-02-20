@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 
 type SocialNodeData = {
   label?: string;
@@ -36,6 +37,27 @@ function platformLabel(platform: Platform) {
   return 'Instagram';
 }
 
+// Markdown renderer for social node content
+function SocialMarkdownContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        h1: ({ children }) => <h1 className="mb-1 text-sm font-semibold">{children}</h1>,
+        h2: ({ children }) => <h2 className="mb-1 text-[13px] font-semibold">{children}</h2>,
+        h3: ({ children }) => <h3 className="mb-1 text-xs font-semibold">{children}</h3>,
+        p: ({ children }) => <p className="mb-2">{children}</p>,
+        ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
+        li: ({ children }) => <li className="mb-1">{children}</li>,
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        em: ({ children, ...props }) => <em className="italic" {...props}>{children}</em>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
 export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeType>) {
   const mindmap = useMindMap();
   const tooltipClassName =
@@ -47,8 +69,25 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [streamedOutput, setStreamedOutput] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
+  // Process streamed output to remove asterisks
+  const processedStreamedOutput = React.useMemo(() => {
+    let processed = streamedOutput;
+    processed = processed.replace(/\*\*/g, '');
+    processed = processed.replace(/\*/g, '');
+    return processed;
+  }, [streamedOutput]);
+
   const isFocused = selected || mindmap.selectedNodeId === id;
-  const content = String(data?.content ?? '');
+  const rawContent = String(data?.content ?? '');
+  
+  // Remove asterisks from content
+  const content = React.useMemo(() => {
+    let processed = rawContent;
+    processed = processed.replace(/\*\*/g, ''); // remove double asterisks first
+    processed = processed.replace(/\*/g, '');   // then remove single asterisks
+    return processed;
+  }, [rawContent]);
+  
   const messagingLengthByPlatform = data?.messagingLengthByPlatform ?? {};
   const currentLengthValue =
     messagingLengthByPlatform[platform] === 'medium'
@@ -330,9 +369,9 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
           >
             Copy all
           </button>
-          <p className="nodrag cursor-default select-text whitespace-pre-wrap text-sm leading-relaxed text-dark">
-            {isGenerating && streamedOutput ? streamedOutput : content}
-          </p>
+          <div className="nodrag cursor-default select-text whitespace-pre-wrap text-sm leading-relaxed text-dark">
+            <SocialMarkdownContent content={isGenerating && streamedOutput ? streamedOutput : content} />
+          </div>
         </div>
       </div>
     </div>

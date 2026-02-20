@@ -115,16 +115,6 @@ export default function Home() {
 
           <div className="relative mt-8 lg:mt-0">
             <style>{`
-              .mvp-container {
-                width: 100%;
-                height: 250px;
-                position: relative;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin-top: 24px;
-              }
-
               .group-1,
               .group-2,
               .group-3,
@@ -231,7 +221,7 @@ export default function Home() {
                 50%, 80% { translate: -66px 49px; }
               }
             `}</style>
-            <div className="mvp-container">
+            <div className="w-full h-[250px] relative justify-center items-center mt-6">
               <div className="group-1">
                 <div className="tower-1 split-right">
                   <div className="isometric-tower-top"></div>

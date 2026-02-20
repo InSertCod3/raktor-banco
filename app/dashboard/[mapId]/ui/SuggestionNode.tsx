@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import { Tooltip } from 'react-tooltip';
 import { LineWave } from 'react-loader-spinner';
+import ReactMarkdown from 'react-markdown';
 import { useMindMap } from './MindMapContext';
 
 type SuggestionNodeData = {
@@ -18,96 +19,41 @@ type SuggestionNodeData = {
 
 type SuggestionNodeType = Node<SuggestionNodeData, 'suggestion'>;
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#39;');
-}
-
-function renderInlineMarkdown(line: string): string {
-  return line
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/`(.+?)`/g, '<code>$1</code>');
-}
-
-function markdownToHtml(markdown: string): string {
-  const lines = markdown.split(/\r?\n/);
-  const output: string[] = [];
-  let inUl = false;
-  let inOl = false;
-
-  const closeLists = () => {
-    if (inUl) {
-      output.push('</ul>');
-      inUl = false;
-    }
-    if (inOl) {
-      output.push('</ol>');
-      inOl = false;
-    }
-  };
-
-  for (const rawLine of lines) {
-    const line = rawLine.trim();
-    if (!line) {
-      closeLists();
-      continue;
-    }
-
-    const safeLine = renderInlineMarkdown(escapeHtml(line));
-
-    if (line.startsWith('### ')) {
-      closeLists();
-      output.push(`<h3>${safeLine.slice(4)}</h3>`);
-      continue;
-    }
-    if (line.startsWith('## ')) {
-      closeLists();
-      output.push(`<h2>${safeLine.slice(3)}</h2>`);
-      continue;
-    }
-    if (line.startsWith('# ')) {
-      closeLists();
-      output.push(`<h1>${safeLine.slice(2)}</h1>`);
-      continue;
-    }
-
-    if (/^[-*]\s+/.test(line)) {
-      if (inOl) {
-        output.push('</ol>');
-        inOl = false;
-      }
-      if (!inUl) {
-        output.push('<ul>');
-        inUl = true;
-      }
-      output.push(`<li>${safeLine.replace(/^[-*]\s+/, '')}</li>`);
-      continue;
-    }
-
-    if (/^\d+\.\s+/.test(line)) {
-      if (inUl) {
-        output.push('</ul>');
-        inUl = false;
-      }
-      if (!inOl) {
-        output.push('<ol>');
-        inOl = true;
-      }
-      output.push(`<li>${safeLine.replace(/^\d+\.\s+/, '')}</li>`);
-      continue;
-    }
-
-    closeLists();
-    output.push(`<p>${safeLine}</p>`);
-  }
-
-  closeLists();
-  return output.join('');
+// Secure markdown renderer using react-markdown
+function MarkdownContent({ content }: { content: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        h1: ({ children }) => <h1 className="mb-1 text-sm font-semibold">{children}</h1>,
+        h2: ({ children }) => <h2 className="mb-1 text-[13px] font-semibold">{children}</h2>,
+        h3: ({ children }) => <h3 className="mb-1 text-xs font-semibold">{children}</h3>,
+        p: ({ children }) => <p className="mb-2">{children}</p>,
+        ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
+        li: ({ children }) => <li className="mb-1">{children}</li>,
+        code: ({ className, children, ...props }) => {
+          const match = /language-(\w+)/.exec(className || '');
+          const isInline = !match && !String(children).includes('\n');
+          if (isInline) {
+            return (
+              <code className="rounded bg-violet-100/70 px-1 py-0.5" {...props}>
+                {children}
+              </code>
+            );
+          }
+          return (
+            <code className={className} {...props}>
+              {children}
+            </code>
+          );
+        },
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        em: ({ children }) => <em>{children}</em>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
 }
 
 export default function SuggestionNode({ id, data, selected }: NodeProps<SuggestionNodeType>) {
@@ -253,9 +199,10 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
           Copy all
         </button>
         <div
-          className="nodrag cursor-default select-text text-xs leading-5 text-black [&_h1]:mb-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-1 [&_h2]:text-[13px] [&_h2]:font-semibold [&_h3]:mb-1 [&_h3]:text-[12px] [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_li]:mb-1 [&_code]:rounded [&_code]:bg-violet-100/70 [&_code]:px-1 [&_code]:py-0.5 [&_strong]:font-semibold [&_em]:italic"
-          dangerouslySetInnerHTML={{ __html: markdownToHtml(suggestionText) }}
-        />
+          className="nodrag cursor-default select-text text-xs leading-5 text-black"
+        >
+          <MarkdownContent content={suggestionText} />
+        </div>
       </div>
       {copyMessage ? <p className="mt-1 text-[11px] text-violet-700">{copyMessage}</p> : null}
 
