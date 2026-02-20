@@ -1,30 +1,33 @@
-# Use the official Node.js image as the base
 FROM node:20-alpine
 
-# Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Provide dummy DATABASE_URL for Prisma generate
+ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
+
+# Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install deps
 RUN npm install
 
-# Copy the rest of the application code
+# Copy rest of app
 COPY . .
 
-# Build the Next.js application
-RUN npm run prisma:generate
+# Generate Prisma client
+RUN npx prisma generate
 
-# Build the Next.js application
+# Build Next.js
 RUN npm run build
 
-# Expose the port the app runs on
-ENV NODE_ENV production
+# Production env
+ENV NODE_ENV=production
+
+# Standalone output setup
 RUN mkdir -p .next/standalone/public .next/standalone/public/_next/static
 RUN cp -r public .next/standalone
 RUN cp -r .next/static .next/standalone/public/_next
+
 EXPOSE 3000
 
-# Start the application
 CMD ["npm", "start"]
