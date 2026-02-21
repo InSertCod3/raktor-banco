@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import ConfimationModel from '@/app/components/ConfimationModel';
 import LoadingModal from '@/app/components/LoadingModal';
 
 interface MapItem {
@@ -428,7 +428,7 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
         ))}
       </div>
 
-      <DeleteConfirmationModal
+      <ConfimationModel
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
         onConfirm={confirmDelete}
@@ -471,3 +471,5 @@ export default function MapListClient({ initialMaps }: MapListClientProps) {
     </>
   );
 }
+
+

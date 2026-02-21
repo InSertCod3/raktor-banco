@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
-import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
@@ -17,6 +17,7 @@ type SocialNodeData = {
   type: 'social';
   platform?: Platform;
   content?: string;
+  contentByPlatform?: Partial<Record<Platform, string>>;
   messagingLengthByPlatform?: Partial<Record<Platform, MessagingLengthOption | 'medium' | 'long'>>;
 };
 
@@ -181,6 +182,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [streamedOutput, setStreamedOutput] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [isCancelRefineModalOpen, setIsCancelRefineModalOpen] = useState(false);
+  const [isDoneRefineModalOpen, setIsDoneRefineModalOpen] = useState(false);
   const [isRefineMode, setIsRefineMode] = useState(false);
   const [refinedSentenceIndex, setRefinedSentenceIndex] = useState<number | null>(null);
   const [refineDraftContent, setRefineDraftContent] = useState('');
@@ -198,15 +200,6 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [customSentenceInput, setCustomSentenceInput] = useState('');
   const [customSentenceError, setCustomSentenceError] = useState<string | null>(null);
   const nodeContainerRef = React.useRef<HTMLDivElement | null>(null);
-  // Reset selected sentence when content changes
-  useEffect(() => {
-    setRefinedSentenceIndex(null);
-    if (!isRefineMode) {
-      setRefineDraftContent(content);
-      setRefineSentenceChanges({});
-    }
-  }, [data?.content]);
-
   const closeSentenceAssistant = () => {
     setShowSuggestionsMenu(false);
     setSelectedSentenceIndex(null);
@@ -221,7 +214,15 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   };
 
   const isFocused = selected || mindmap.selectedNodeId === id;
-  const rawContent = String(data?.content ?? '');
+  const contentByPlatform = (data?.contentByPlatform ?? {}) as Partial<Record<Platform, string>>;
+  const fallbackContent = String(data?.content ?? '');
+  const hasAnyPlatformContent = (['LINKEDIN', 'FACEBOOK', 'INSTAGRAM'] as Platform[]).some((key) =>
+    Boolean(contentByPlatform[key]?.trim())
+  );
+  const rawContent =
+    hasAnyPlatformContent
+      ? String(contentByPlatform[platform] ?? '')
+      : ((data?.platform ?? platform) === platform ? fallbackContent : '');
   
   // Remove asterisks from content
   const content = React.useMemo(() => {
@@ -230,6 +231,21 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     processed = processed.replace(/\*/g, '');
     return processed;
   }, [rawContent]);
+
+  useEffect(() => {
+    if (data?.platform && data.platform !== platform) {
+      setPlatform(data.platform);
+    }
+  }, [data?.platform, platform]);
+
+  // Reset selected sentence when active platform content changes
+  useEffect(() => {
+    setRefinedSentenceIndex(null);
+    if (!isRefineMode) {
+      setRefineDraftContent(content);
+      setRefineSentenceChanges({});
+    }
+  }, [content, isRefineMode]);
 
   const messagingLengthByPlatform = data?.messagingLengthByPlatform ?? {};
   const currentLengthValue =
@@ -558,7 +574,14 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     const trimmedDraft = persistedContent.trim();
     const trimmedContent = content.trim();
     if (trimmedDraft !== trimmedContent) {
-      mindmap.updateNodeData(id, { content: persistedContent });
+      mindmap.updateNodeData(id, {
+        content: persistedContent,
+        platform,
+        contentByPlatform: {
+          ...contentByPlatform,
+          [platform]: persistedContent,
+        },
+      });
     }
     setIsRefineMode(false);
     setRefineSentenceChanges({});
@@ -567,15 +590,43 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     closeSentenceAssistant();
   };
 
+  const handlePlatformSwitch = (nextPlatform: Platform) => {
+    if (nextPlatform === platform) return;
+
+    const currentByPlatform = (data?.contentByPlatform ?? {}) as Partial<Record<Platform, string>>;
+    const outgoingContent = content;
+    const incomingContent = currentByPlatform[nextPlatform] ?? '';
+
+    setPlatform(nextPlatform);
+    mindmap.updateNodeData(id, {
+      platform: nextPlatform,
+      content: incomingContent,
+      contentByPlatform: {
+        ...currentByPlatform,
+        [platform]: outgoingContent,
+      },
+    });
+  };
+
   return (
     <div
       ref={nodeContainerRef}
       className={[
-        'relative w-[360px] rounded-2xl border p-4 shadow-1',
-        isFocused ? 'border-primary bg-blue-50 ring-2 ring-primary/20' : 'border-stroke bg-white',
+        'relative w-[380px] overflow-visible rounded-3xl border p-4 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-all duration-200',
+        isGenerating ? 'select-none' : '',
+        isFocused
+          ? 'border-primary/50 bg-gradient-to-br from-blue-50 via-white to-cyan-50 ring-2 ring-primary/20'
+          : 'border-stroke/70 bg-gradient-to-br from-white via-white to-slate-50',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
     >
+      {isGenerating ? (
+        <div
+          className="absolute inset-0 z-40 rounded-3xl bg-white/45 backdrop-blur-[2px] cursor-wait"
+          onMouseDown={(e) => e.stopPropagation()}
+          aria-hidden
+        />
+      ) : null}
       <Tooltip
         id={`social-copy-tooltip-${id}`}
         place="bottom"
@@ -585,21 +636,21 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
       />
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-primary" />
 
-      <div className="mb-3 flex items-start justify-between gap-2">
+      <div className="mb-3 flex items-start justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-sm">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-primary">Social Draft</div>
-          <div className="text-sm font-semibold text-dark">{platformLabel(platform)}</div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">Social Draft</div>
+          <div className="mt-0.5 text-sm font-semibold text-dark">{platformLabel(platform)}</div>
         </div>
         <button
           type="button"
-          className="nodrag rounded-md bg-red-500 px-2 py-1 text-[11px] text-white hover:bg-red-6"
+          className="nodrag rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 transition-colors hover:bg-red-100"
           onClick={() => setIsDeleteModalOpen(true)}
         >
           <FontAwesomeIcon icon={faTrash} />
         </button>
       </div>
 
-      <DeleteConfirmationModal
+      <ConfimationModel
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
@@ -607,7 +658,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         itemName={data?.label || 'Social Draft'}
         phraseEnforce={false}
       />
-      <DeleteConfirmationModal
+      <ConfimationModel
         isOpen={isCancelRefineModalOpen}
         onClose={() => setIsCancelRefineModalOpen(false)}
         onConfirm={() => {
@@ -617,6 +668,20 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         title="Discard Refine Changes"
         itemName="Unsaved refine edits"
         phraseEnforce={false}
+      />
+      <ConfimationModel
+        isOpen={isDoneRefineModalOpen}
+        onClose={() => setIsDoneRefineModalOpen(false)}
+        onConfirm={() => {
+          handleRefineDone();
+          setIsDoneRefineModalOpen(false);
+        }}
+        title="Apply Refine Changes"
+        itemName="Refined content updates"
+        phraseEnforce={false}
+        variant="confirm"
+        confirmLabel="Apply"
+        confirmLoadingLabel="Applying..."
       />
 
       {/* Upgrade Modal */}
@@ -651,15 +716,17 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         </div>
       )}
 
-      <div className="mb-3 flex items-center gap-1 rounded-xl bg-gray-1 p-1">
+      <div className="mb-3 flex items-center gap-1 rounded-2xl border border-slate-200/80 bg-white/90 p-1.5 shadow-sm">
         {(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM'] as Platform[]).map((item) => (
           <button
             key={item}
             type="button"
-            onClick={() => setPlatform(item)}
+            onClick={() => handlePlatformSwitch(item)}
             className={[
-              'nodrag rounded-lg px-2.5 py-1 text-xs font-medium',
-              platform === item ? 'bg-white text-dark shadow-1' : 'text-body-color hover:text-dark',
+              'nodrag flex-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
+              platform === item
+                ? 'bg-gradient-to-b from-primary to-blue-600 text-white shadow-md'
+                : 'text-body-color hover:bg-slate-50 hover:text-dark',
             ].join(' ')}
           >
             {platformLabel(item)}
@@ -667,10 +734,10 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         ))}
       </div>
 
-      <div className="mb-3 rounded-xl border border-stroke bg-white p-3">
+      <div className="mb-3 rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-body-color">Messaging Length</div>
-          <div className="text-[11px] font-semibold text-dark">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-body-color">Messaging Length</div>
+          <div className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-dark">
             {MESSAGING_LENGTH_OPTIONS[safeLengthIndex].label}
           </div>
         </div>
@@ -692,7 +759,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                 },
               });
             }}
-            className="nodrag h-2 w-full appearance-none rounded-lg bg-gray-200 outline-none focus:outline-none disabled:opacity-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:active:scale-95"
+            className="nodrag h-2 w-full appearance-none rounded-lg bg-slate-200 outline-none focus:outline-none disabled:opacity-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:active:scale-95"
             aria-label={`Messaging length for ${platformLabel(platform)}`}
           />
         </div>
@@ -710,10 +777,10 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                 });
               }}
               className={[
-                'rounded-lg py-1.5 text-[10px] font-medium transition-all',
+                'rounded-lg py-1.5 text-[10px] font-semibold transition-all',
                 index === safeLengthIndex
-                  ? 'bg-primary text-white shadow-md'
-                  : 'bg-gray-50 text-body-color hover:bg-gray-100',
+                  ? 'bg-gradient-to-b from-primary to-blue-600 text-white shadow-md'
+                  : 'bg-slate-50 text-body-color hover:bg-slate-100',
               ].join(' ')}
             >
               {option.label}
@@ -722,10 +789,10 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         </div>
       </div>
 
-      <div className="flex gap-2">
+      <div className="mb-3 flex gap-2">
         <button
           type="button"
-          className="nodrag mb-3 flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-blue-dark disabled:opacity-60"
+          className="nodrag flex-1 rounded-xl bg-gradient-to-r from-primary to-blue-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-dark disabled:opacity-60"
           onClick={handleGenerate}
           disabled={isGenerating}
         >
@@ -756,10 +823,10 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
               }
               enterRefineMode();
             }}
-            className={`nodrag mb-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
+            className={`nodrag flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
               isRefineMode 
-                ? 'border-yellow-400 bg-yellow-50 text-yellow-700' 
-                : 'border-gray-200 bg-white text-gray-600 hover:border-yellow-300 hover:bg-yellow-50'
+                ? 'border-amber-300 bg-amber-50 text-amber-700 shadow-sm' 
+                : 'border-slate-200 bg-white text-gray-600 hover:border-amber-300 hover:bg-amber-50'
             }`}
           >
             <FontAwesomeIcon 
@@ -800,22 +867,32 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
           </div>
 
           <div className="flex gap-2 text-[10px]">
+            {hasPendingRefineChanges ? (
+              <button
+                type="button"
+                onClick={() => setIsCancelRefineModalOpen(true)}
+                className="rounded-md border border-red-300 bg-red-100 px-2.5 py-1.5 font-semibold text-red-700 transition-all hover:-translate-y-0.5 hover:bg-red-200"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={exitRefineModeWithoutSaving}
+                className="rounded-md border border-slate-300 bg-white px-2.5 py-1.5 font-semibold text-slate-700 transition-all hover:-translate-y-0.5 hover:bg-slate-50"
+              >
+                Back
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setIsCancelRefineModalOpen(true)}
+              onClick={() => setIsDoneRefineModalOpen(true)}
               disabled={!hasPendingRefineChanges}
-              className={`rounded-md border px-2.5 py-1.5 font-semibold transition-all ${
+              className={`ml-auto rounded-md px-3 py-1.5 font-semibold shadow-sm transition-all ${
                 hasPendingRefineChanges
-                  ? 'border-red-300 bg-red-100 text-red-700 hover:-translate-y-0.5 hover:bg-red-200'
-                  : 'cursor-not-allowed border-red-100 bg-red-50 text-red-300'
+                  ? 'bg-emerald-500 text-white hover:-translate-y-0.5 hover:bg-emerald-600'
+                  : 'cursor-not-allowed bg-emerald-100 text-emerald-300'
               }`}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleRefineDone}
-              className="ml-auto rounded-md bg-amber-400 px-3 py-1.5 font-semibold text-amber-900 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-amber-500"
             >
               Done
             </button>
@@ -840,7 +917,11 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         </div>
       )}
 
-      <div className="min-h-[170px] rounded-xl border border-stroke bg-white p-3">
+      <div
+        className={`min-h-[190px] rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-sm ${
+          isGenerating ? 'relative z-50 pointer-events-none' : ''
+        }`}
+      >
         {error ? <p className="text-xs text-red-600">{error}</p> : null}
         {!error && isGenerating && !streamedOutput ? (
           <div className="mb-2 flex items-center gap-2 text-xs text-body-color">
@@ -855,13 +936,15 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
           </div>
         ) : null}
         {!error && !content && !streamedOutput ? (
-          <p className="text-xs text-body-color">Generate a post from connected idea context.</p>
+          <p className="text-xs text-body-color">
+            No {platformLabel(platform)} draft yet. Click <span className="font-semibold">Generate {platformLabel(platform)}</span> to create one.
+          </p>
         ) : null}
         <div className="group relative">
           {!isRefineMode && (
             <button
               type="button"
-              className="nodrag absolute right-1 top-1 z-10 rounded-md bg-primary px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-all duration-150 hover:bg-blue-dark group-hover:translate-y-0 group-hover:opacity-100"
+              className="nodrag absolute right-1 top-1 z-10 rounded-lg bg-gradient-to-r from-primary to-blue-600 px-2 py-1 text-[10px] font-semibold text-white opacity-0 transition-all duration-150 hover:from-blue-600 hover:to-blue-dark group-hover:translate-y-0 group-hover:opacity-100"
               style={{ transform: 'translateY(-4px)' }}
               data-tooltip-id={`social-copy-tooltip-${id}`}
               data-tooltip-content="copy all the text"
@@ -1125,3 +1208,5 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     </div>
   );
 }
+
+

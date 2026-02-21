@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap } from './MindMapContext';
-import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
+import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import NodeAddPanel from './NodeAddPanel';
@@ -138,7 +138,7 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
         </div>
       </div>
 
-      <DeleteConfirmationModal
+      <ConfimationModel
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={() => {
@@ -314,3 +314,5 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
     </div>
   );
 }
+
+

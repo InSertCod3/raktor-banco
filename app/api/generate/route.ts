@@ -17,6 +17,7 @@ const GenerateSchema = z.object({
 });
 
 type MessagingLength = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
+type SocialPlatform = PlatformType | 'INSTAGRAM';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -50,6 +51,18 @@ function collectTextValues(input: unknown): string[] {
   }
 
   return [];
+}
+
+function getContentByPlatform(data: unknown): Partial<Record<SocialPlatform, string>> {
+  if (!isRecord(data)) return {};
+  const raw = data.contentByPlatform;
+  if (!isRecord(raw)) return {};
+
+  const result: Partial<Record<SocialPlatform, string>> = {};
+  if (typeof raw.LINKEDIN === 'string') result.LINKEDIN = raw.LINKEDIN;
+  if (typeof raw.FACEBOOK === 'string') result.FACEBOOK = raw.FACEBOOK;
+  if (typeof raw.INSTAGRAM === 'string') result.INSTAGRAM = raw.INSTAGRAM;
+  return result;
 }
 
 export async function POST(req: Request) {
@@ -242,18 +255,27 @@ export async function POST(req: Request) {
     : isRecord(requestedNode.data)
     ? requestedNode.data
     : {};
+  const existingContentByPlatform = getContentByPlatform(socialDataBase);
   const socialDataWithDefaults = {
     ...socialDataBase,
     label: socialLabel,
     type: 'social',
     platform,
+    contentByPlatform: existingContentByPlatform,
   };
   const savedSocialNode = await prisma.node.upsert({
     where: { id: socialNodeId },
     update: {
       mapId,
       type: 'social',
-      data: { ...socialDataWithDefaults, content: '' },
+      data: {
+        ...socialDataWithDefaults,
+        content: '',
+        contentByPlatform: {
+          ...existingContentByPlatform,
+          [platform]: '',
+        },
+      },
     },
     create: {
       id: socialNodeId,
@@ -261,7 +283,14 @@ export async function POST(req: Request) {
       type: 'social',
       positionX: ideaNode.positionX + 280,
       positionY: ideaNode.positionY + 60,
-      data: { ...socialDataWithDefaults, content: '' },
+      data: {
+        ...socialDataWithDefaults,
+        content: '',
+        contentByPlatform: {
+          ...existingContentByPlatform,
+          [platform]: '',
+        },
+      },
     },
     select: { id: true, type: true, positionX: true, positionY: true, data: true },
   });
@@ -356,7 +385,14 @@ export async function POST(req: Request) {
           prisma.node.update({
             where: { id: socialNodeId },
             data: {
-              data: { ...socialDataWithDefaults, content: outputText },
+              data: {
+                ...socialDataWithDefaults,
+                content: outputText,
+                contentByPlatform: {
+                  ...existingContentByPlatform,
+                  [platform]: outputText,
+                },
+              },
             },
             select: { id: true, type: true, positionX: true, positionY: true, data: true },
           }),

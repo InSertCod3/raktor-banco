@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 
-interface DeleteConfirmationModalProps {
+interface ConfimationModelProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -10,9 +10,13 @@ interface DeleteConfirmationModalProps {
   itemName: string;
   phraseEnforce?: boolean;
   isLoading?: boolean;
+  variant?: 'delete' | 'confirm';
+  description?: string;
+  confirmLabel?: string;
+  confirmLoadingLabel?: string;
 }
 
-export default function DeleteConfirmationModal({
+export default function ConfimationModel({
   isOpen,
   onClose,
   onConfirm,
@@ -20,10 +24,22 @@ export default function DeleteConfirmationModal({
   itemName,
   phraseEnforce = false,
   isLoading = false,
-}: DeleteConfirmationModalProps) {
+  variant = 'delete',
+  description,
+  confirmLabel,
+  confirmLoadingLabel,
+}: ConfimationModelProps) {
   const [inputValue, setInputValue] = useState('');
   const requiredPhrase = itemName.substring(0, 5);
   const isConfirmDisabled = phraseEnforce && inputValue !== requiredPhrase;
+  const resolvedDescription =
+    description ??
+    (variant === 'delete'
+      ? 'Are you sure you want to delete'
+      : 'Are you sure you want to apply changes to');
+  const resolvedSuffix = variant === 'delete' ? 'This action cannot be undone.' : '';
+  const resolvedConfirmLabel = confirmLabel ?? (variant === 'delete' ? 'Delete' : 'Confirm');
+  const resolvedConfirmLoadingLabel = confirmLoadingLabel ?? (variant === 'delete' ? 'Deleting...' : 'Applying...');
 
   useEffect(() => {
     if (isOpen) {
@@ -38,8 +54,8 @@ export default function DeleteConfirmationModal({
       <div className="w-full max-w-md rounded-2xl border border-stroke bg-white p-6 shadow-2xl animate-in fade-in zoom-in duration-200">
         <h3 className="text-xl font-bold text-dark">{title}</h3>
         <p className="mt-3 text-body-color">
-          Are you sure you want to delete <span className="font-semibold text-dark">"{itemName}"</span>? 
-          This action cannot be undone.
+          {resolvedDescription} <span className="font-semibold text-dark">"{itemName}"</span>
+          {resolvedSuffix ? <>. {resolvedSuffix}</> : null}
         </p>
 
         {phraseEnforce && (
@@ -70,12 +86,17 @@ export default function DeleteConfirmationModal({
           <button
             onClick={onConfirm}
             disabled={isConfirmDisabled || isLoading}
-            className="rounded-lg bg-red-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-red-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className={[
+              'rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed',
+              variant === 'delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-blue-dark',
+            ].join(' ')}
           >
-            {isLoading ? 'Deleting...' : 'Delete'}
+            {isLoading ? resolvedConfirmLoadingLabel : resolvedConfirmLabel}
           </button>
         </div>
       </div>
     </div>
   );
 }
+
+
