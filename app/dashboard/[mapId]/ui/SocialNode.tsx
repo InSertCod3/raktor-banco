@@ -5,7 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faHighlighter, faComment } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faHighlighter, faComment, faXmark } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
@@ -55,17 +55,15 @@ function splitIntoSentences(text: string): string[] {
 function HighlightableSentence({ 
   text, 
   isHighlighted, 
-  onClick,
+  onSentenceClick,
   index,
-  onShowSuggestions,
   isActive,
   onHoverChange
 }: { 
   text: string; 
   isHighlighted: boolean; 
-  onClick: () => void;
+  onSentenceClick: (index: number, event: React.MouseEvent) => void;
   index: number;
-  onShowSuggestions: (index: number, event: React.MouseEvent) => void;
   isActive: boolean;
   onHoverChange: (index: number | null) => void;
 }) {
@@ -104,12 +102,11 @@ function HighlightableSentence({
     <span
       onMouseEnter={(e) => {
         onHoverChange(index);
-        onShowSuggestions(index, e);
       }}
       onMouseLeave={() => onHoverChange(null)}
       onClick={(e) => {
         e.stopPropagation();
-        onClick();
+        onSentenceClick(index, e);
       }}
       className={`relative cursor-pointer rounded px-1 py-0.5 transition-all duration-150 ease-out ${
         isActive
@@ -126,16 +123,14 @@ function HighlightableSentence({
 function HighlightableContent({ 
   content, 
   highlightedIndex,
-  onToggle,
-  onShowSuggestions,
+  onSentenceClick,
   hoveredSentence,
   setHoveredSentence,
   activeSentenceIndex
 }: { 
   content: string; 
   highlightedIndex: number | null;
-  onToggle: (index: number) => void;
-  onShowSuggestions: (index: number, event: React.MouseEvent) => void;
+  onSentenceClick: (index: number, event: React.MouseEvent) => void;
   hoveredSentence: number | null;
   setHoveredSentence: (index: number | null) => void;
   activeSentenceIndex: number | null;
@@ -149,10 +144,9 @@ function HighlightableContent({
           <HighlightableSentence
             text={sentence}
             isHighlighted={highlightedIndex === index}
-            onClick={() => onToggle(index)}
+            onSentenceClick={onSentenceClick}
             index={index}
-            onShowSuggestions={onShowSuggestions}
-            isActive={hoveredSentence === index || activeSentenceIndex === index}
+            isActive={activeSentenceIndex === index}
             onHoverChange={setHoveredSentence}
           />
           {index < sentences.length - 1 ? ' ' : ''}
@@ -176,7 +170,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [refinedSentenceIndex, setRefinedSentenceIndex] = useState<number | null>(null);
   const [showSuggestionsMenu, setShowSuggestionsMenu] = useState(false);
   const [selectedSentenceIndex, setSelectedSentenceIndex] = useState<number | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+  const [menuSide, setMenuSide] = useState<'right' | 'left'>('right');
   const [hoveredSentence, setHoveredSentence] = useState<number | null>(null);
   const [generatedSuggestions, setGeneratedSuggestions] = useState<string[]>([]);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
@@ -186,32 +180,24 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [showCustomEntryModal, setShowCustomEntryModal] = useState(false);
   const [customSentenceInput, setCustomSentenceInput] = useState('');
   const [customSentenceError, setCustomSentenceError] = useState<string | null>(null);
+  const nodeContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const latestContentRef = React.useRef('');
 
   // Reset selected sentence when content changes
   useEffect(() => {
     setRefinedSentenceIndex(null);
   }, [data?.content]);
 
-  useEffect(() => {
-    if (!showSuggestionsMenu) return;
-
-    const onDocumentMouseDown = (event: MouseEvent) => {
-      const target = event.target as globalThis.Node | null;
-      if (target && suggestionsMenuRef.current?.contains(target)) return;
-      setShowSuggestionsMenu(false);
-      setSelectedSentenceIndex(null);
-      setGeneratedSuggestions([]);
-      setSuggestionsError(null);
-      setPreviewSuggestion(null);
-      setHoveredSentence(null);
-      setShowCustomEntryModal(false);
-      setCustomSentenceInput('');
-      setCustomSentenceError(null);
-    };
-
-    document.addEventListener('mousedown', onDocumentMouseDown);
-    return () => document.removeEventListener('mousedown', onDocumentMouseDown);
-  }, [showSuggestionsMenu]);
+  const closeSentenceAssistant = () => {
+    setShowSuggestionsMenu(false);
+    setSelectedSentenceIndex(null);
+    setGeneratedSuggestions([]);
+    setSuggestionsError(null);
+    setPreviewSuggestion(null);
+    setShowCustomEntryModal(false);
+    setCustomSentenceInput('');
+    setCustomSentenceError(null);
+  };
 
   const isFocused = selected || mindmap.selectedNodeId === id;
   const rawContent = String(data?.content ?? '');
@@ -223,6 +209,10 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     processed = processed.replace(/\*/g, '');
     return processed;
   }, [rawContent]);
+
+  useEffect(() => {
+    latestContentRef.current = content;
+  }, [content]);
   
   const messagingLengthByPlatform = data?.messagingLengthByPlatform ?? {};
   const currentLengthValue =
@@ -319,16 +309,15 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     }
   };
 
-  // Toggle single sentence selection for refinement
-  const toggleHighlight = (index: number) => {
-    setRefinedSentenceIndex((current) => (current === index ? null : index));
-  };
-
-  // Show suggestions menu at sentence position
-  const showSentenceSuggestions = (index: number, event: React.MouseEvent) => {
-    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    // Position popup right below the sentence in viewport coordinates.
-    setMenuPosition({ x: rect.left, y: rect.bottom + 5 });
+  // Show suggestions menu anchored beside the social node
+  const openSentenceSuggestions = (index: number) => {
+    const nodeRect = nodeContainerRef.current?.getBoundingClientRect();
+    if (nodeRect) {
+      const menuWidth = 320;
+      const gap = 12;
+      const canPlaceRight = nodeRect.right + gap + menuWidth <= window.innerWidth - 8;
+      setMenuSide(canPlaceRight ? 'right' : 'left');
+    }
     setSelectedSentenceIndex(index);
     setGeneratedSuggestions([]);
     setSuggestionsError(null);
@@ -336,19 +325,22 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     setShowSuggestionsMenu(true);
   };
 
+  const handleSentenceClick = (index: number) => {
+    setRefinedSentenceIndex(index);
+    openSentenceSuggestions(index);
+  };
+
   const applySentenceSuggestion = (suggestion: string) => {
     if (selectedSentenceIndex === null) return;
-    const sentences = splitIntoSentences(content);
+    const sentences = splitIntoSentences(latestContentRef.current);
     if (selectedSentenceIndex >= sentences.length) return;
 
-    sentences[selectedSentenceIndex] = suggestion;
+    const normalizedSuggestion = splitIntoSentences(suggestion.trim())[0] ?? suggestion.trim();
+    sentences[selectedSentenceIndex] = normalizedSuggestion;
     const newContent = sentences.join(' ');
     mindmap.updateNodeData(id, { content: newContent });
     setRefinedSentenceIndex(selectedSentenceIndex);
     setHoveredSentence(null);
-    setShowSuggestionsMenu(false);
-    setSelectedSentenceIndex(null);
-    setGeneratedSuggestions([]);
     setPreviewSuggestion(null);
     setShowCustomEntryModal(false);
     setCustomSentenceInput('');
@@ -405,7 +397,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
   const applyCustomSentenceSuggestion = () => {
     if (selectedSentenceIndex === null) return;
-    const sentences = splitIntoSentences(content);
+    const sentences = splitIntoSentences(latestContentRef.current);
     if (selectedSentenceIndex < 0 || selectedSentenceIndex >= sentences.length) return;
 
     const customText = customSentenceInput.trim();
@@ -414,13 +406,12 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
       return;
     }
 
-    sentences[selectedSentenceIndex] = customText;
+    const normalizedCustomText = splitIntoSentences(customText)[0] ?? customText;
+    sentences[selectedSentenceIndex] = normalizedCustomText;
     const newContent = sentences.join(' ');
     mindmap.updateNodeData(id, { content: newContent });
     setRefinedSentenceIndex(selectedSentenceIndex);
     setHoveredSentence(null);
-    setShowSuggestionsMenu(false);
-    setSelectedSentenceIndex(null);
     setPreviewSuggestion(null);
     setShowCustomEntryModal(false);
     setCustomSentenceInput('');
@@ -429,6 +420,12 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
   const selectedCount = refinedSentenceIndex === null ? 0 : 1;
   const totalSentences = splitIntoSentences(content).length;
+  const selectedSentenceText = useMemo(() => {
+    if (selectedSentenceIndex === null) return '';
+    const sentences = splitIntoSentences(content);
+    if (selectedSentenceIndex < 0 || selectedSentenceIndex >= sentences.length) return '';
+    return sentences[selectedSentenceIndex];
+  }, [content, selectedSentenceIndex]);
   const baseDisplayContent = isGenerating && streamedOutput ? streamedOutput : content;
   const displayContent = useMemo(() => {
     if (
@@ -459,6 +456,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
   return (
     <div
+      ref={nodeContainerRef}
       className={[
         'relative w-[360px] rounded-2xl border p-4 shadow-1',
         isFocused ? 'border-primary bg-blue-50 ring-2 ring-primary/20' : 'border-stroke bg-white',
@@ -714,8 +712,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
               <HighlightableContent
                 content={displayContent}
                 highlightedIndex={refinedSentenceIndex}
-                onToggle={toggleHighlight}
-                onShowSuggestions={showSentenceSuggestions}
+                onSentenceClick={handleSentenceClick}
                 hoveredSentence={hoveredSentence}
                 setHoveredSentence={setHoveredSentence}
                 activeSentenceIndex={selectedSentenceIndex}
@@ -732,17 +729,40 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
             <>
               <div 
                 ref={suggestionsMenuRef}
-                className="fixed z-50 mt-1 w-80 rounded-2xl border border-stroke/80 bg-white/95 p-3 shadow-2 backdrop-blur"
-                style={{ left: menuPosition.x, top: menuPosition.y }}
+                className={`absolute z-50 mt-1 w-80 rounded-2xl border border-stroke/80 bg-white/95 p-3 shadow-2 backdrop-blur ${
+                  menuSide === 'right' ? 'left-[calc(100%+12px)] top-0' : 'right-[calc(100%+12px)] top-0'
+                }`}
               >
                 <div className="mb-3 rounded-xl border border-blue-100 bg-blue-50/60 p-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-700">
-                    Sentence Assistant
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-700">
+                        Sentence Assistant
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-blue-900/80">
+                        Generate alternatives, hover to preview inline, then apply the one you want.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeSentenceAssistant}
+                      className="rounded-md border border-blue-200 bg-white px-2 py-1 text-[11px] text-blue-700 hover:bg-blue-50"
+                      aria-label="Close sentence assistant"
+                    >
+                      <FontAwesomeIcon icon={faXmark} />
+                    </button>
                   </div>
-                  <p className="mt-1 text-[11px] leading-relaxed text-blue-900/80">
-                    Generate alternatives, hover to preview inline, then apply the one you want.
-                  </p>
                 </div>
+                {selectedSentenceText ? (
+                  <div className="mb-3 rounded-xl border border-yellow-200 bg-yellow-50/70 p-2">
+                    <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-yellow-800">
+                      Refining This Sentence
+                    </div>
+                    <p className="mt-1 text-[11px] leading-relaxed text-yellow-900">
+                      "{selectedSentenceText}"
+                    </p>
+                  </div>
+                ) : null}
                 <div className="mb-3 flex gap-2">
                   <button
                     type="button"
@@ -750,7 +770,14 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                     disabled={isGeneratingSuggestions}
                     className="flex-1 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-blue-dark disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isGeneratingSuggestions ? 'Generating...' : 'Generate Suggestions'}
+                    {isGeneratingSuggestions ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                        Generating...
+                      </span>
+                    ) : (
+                      'Generate Suggestions'
+                    )}
                   </button>
                   <button
                     type="button"
@@ -776,18 +803,23 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                     {generatedSuggestions.map((suggestion, index) => (
                       <div
                         key={`${suggestion}-${index}`}
-                        className="rounded-lg border border-gray-100 bg-gray-50 p-2"
+                        className="suggestion-card group rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+                        style={{ animationDelay: `${index * 70}ms` }}
                         onMouseEnter={() => setPreviewSuggestion(suggestion)}
                         onMouseLeave={() => setPreviewSuggestion(null)}
                       >
-                        <p className="text-[11px] leading-relaxed text-dark">{suggestion}</p>
-                        <button
-                          type="button"
-                          onClick={() => applySentenceSuggestion(suggestion)}
-                          className="mt-2 rounded-md bg-white px-2 py-1 text-[10px] font-semibold text-primary ring-1 ring-primary/20 hover:bg-primary hover:text-white"
-                        >
-                          Use this
-                        </button>
+                        <div className="flex items-start gap-2 p-2.5">
+                          <p className="flex-1 text-[11px] leading-relaxed text-slate-800">{suggestion}</p>
+                        </div>
+                        <div className="flex items-center justify-end border-t border-slate-100 px-2.5 py-2">
+                          <button
+                            type="button"
+                            onClick={() => applySentenceSuggestion(suggestion)}
+                            className="rounded-md bg-white px-2.5 py-1 text-[10px] font-semibold text-primary ring-1 ring-primary/25 transition-all duration-200 group-hover:ring-primary/40 hover:scale-[1.03] hover:bg-primary hover:text-white"
+                          >
+                            Apply
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -843,6 +875,20 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                   </div>
                 )}
               </div>
+              <style jsx>{`
+                .suggestion-card {
+                  opacity: 0;
+                  transform: translateY(8px) scale(0.98);
+                  animation: suggestionReveal 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                }
+
+                @keyframes suggestionReveal {
+                  to {
+                    opacity: 1;
+                    transform: translateY(0) scale(1);
+                  }
+                }
+              `}</style>
             </>
           )}
         </div>
