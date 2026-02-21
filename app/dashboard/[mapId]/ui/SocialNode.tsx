@@ -5,7 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
 import DeleteConfirmationModal from '@/app/components/DeleteConfirmationModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faHighlighter, faComment, faXmark } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
@@ -22,6 +22,7 @@ type SocialNodeData = {
 
 type SocialNodeType = Node<SocialNodeData, 'social'>;
 type MessagingLengthOption = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
+type SentenceChangeKind = 'suggestion' | 'custom' | 'deleted';
 
 const MESSAGING_LENGTH_OPTIONS: { value: MessagingLengthOption; label: string }[] = [
   { value: 'shortest', label: 'Shortest' },
@@ -58,7 +59,8 @@ function HighlightableSentence({
   onSentenceClick,
   index,
   isActive,
-  onHoverChange
+  onHoverChange,
+  changeKind,
 }: { 
   text: string; 
   isHighlighted: boolean; 
@@ -66,6 +68,7 @@ function HighlightableSentence({
   index: number;
   isActive: boolean;
   onHoverChange: (index: number | null) => void;
+  changeKind: SentenceChangeKind | null;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(text);
@@ -98,6 +101,18 @@ function HighlightableSentence({
     );
   }
 
+  const stateClass = changeKind === 'deleted'
+    ? `bg-red-100 text-red-800 ring-1 ring-red-300/70 line-through decoration-red-500 ${
+        isActive || isHighlighted ? 'scale-105 z-10 ring-red-400' : ''
+      }`
+    : isActive || isHighlighted
+    ? 'text-black bg-yellow-300 scale-105 z-10 ring-1 ring-yellow-400/80'
+    : changeKind === 'suggestion'
+    ? 'bg-emerald-100 text-emerald-900 ring-1 ring-emerald-300/70'
+    : changeKind === 'custom'
+    ? 'bg-sky-100 text-sky-900 ring-1 ring-sky-300/70'
+    : 'bg-transparent hover:bg-gray-100';
+
   return (
     <span
       onMouseEnter={(e) => {
@@ -108,11 +123,7 @@ function HighlightableSentence({
         e.stopPropagation();
         onSentenceClick(index, e);
       }}
-      className={`relative cursor-pointer rounded px-1 py-0.5 transition-all duration-150 ease-out ${
-        isActive
-          ? 'text-black bg-yellow-300 scale-105 z-10'
-          : 'bg-transparent hover:bg-gray-100'
-      } ${isHighlighted ? 'bg-yellow-300' : ''}`}
+      className={`relative cursor-pointer rounded px-1 py-0.5 transition-all duration-150 ease-out ${stateClass}`}
     >
       {text}
     </span>
@@ -126,7 +137,8 @@ function HighlightableContent({
   onSentenceClick,
   hoveredSentence,
   setHoveredSentence,
-  activeSentenceIndex
+  activeSentenceIndex,
+  sentenceChangeMap,
 }: { 
   content: string; 
   highlightedIndex: number | null;
@@ -134,6 +146,7 @@ function HighlightableContent({
   hoveredSentence: number | null;
   setHoveredSentence: (index: number | null) => void;
   activeSentenceIndex: number | null;
+  sentenceChangeMap: Record<number, SentenceChangeKind>;
 }) {
   const sentences = useMemo(() => splitIntoSentences(content), [content]);
   
@@ -148,6 +161,7 @@ function HighlightableContent({
             index={index}
             isActive={activeSentenceIndex === index}
             onHoverChange={setHoveredSentence}
+            changeKind={sentenceChangeMap[index] ?? null}
           />
           {index < sentences.length - 1 ? ' ' : ''}
         </React.Fragment>
@@ -166,8 +180,11 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [error, setError] = useState<string | null>(null);
   const [streamedOutput, setStreamedOutput] = useState('');
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [isCancelRefineModalOpen, setIsCancelRefineModalOpen] = useState(false);
   const [isRefineMode, setIsRefineMode] = useState(false);
   const [refinedSentenceIndex, setRefinedSentenceIndex] = useState<number | null>(null);
+  const [refineDraftContent, setRefineDraftContent] = useState('');
+  const [refineSentenceChanges, setRefineSentenceChanges] = useState<Record<number, SentenceChangeKind>>({});
   const [showSuggestionsMenu, setShowSuggestionsMenu] = useState(false);
   const [selectedSentenceIndex, setSelectedSentenceIndex] = useState<number | null>(null);
   const [menuSide, setMenuSide] = useState<'right' | 'left'>('right');
@@ -181,16 +198,20 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const [customSentenceInput, setCustomSentenceInput] = useState('');
   const [customSentenceError, setCustomSentenceError] = useState<string | null>(null);
   const nodeContainerRef = React.useRef<HTMLDivElement | null>(null);
-  const latestContentRef = React.useRef('');
-
   // Reset selected sentence when content changes
   useEffect(() => {
     setRefinedSentenceIndex(null);
+    if (!isRefineMode) {
+      setRefineDraftContent(content);
+      setRefineSentenceChanges({});
+    }
   }, [data?.content]);
 
   const closeSentenceAssistant = () => {
     setShowSuggestionsMenu(false);
     setSelectedSentenceIndex(null);
+    setRefinedSentenceIndex(null);
+    setHoveredSentence(null);
     setGeneratedSuggestions([]);
     setSuggestionsError(null);
     setPreviewSuggestion(null);
@@ -210,10 +231,6 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     return processed;
   }, [rawContent]);
 
-  useEffect(() => {
-    latestContentRef.current = content;
-  }, [content]);
-  
   const messagingLengthByPlatform = data?.messagingLengthByPlatform ?? {};
   const currentLengthValue =
     messagingLengthByPlatform[platform] === 'medium'
@@ -242,7 +259,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   };
 
   const handleCopy = async () => {
-    const textToCopy = isGenerating && streamedOutput ? streamedOutput : content;
+    const textToCopy = isGenerating && streamedOutput ? streamedOutput : isRefineMode ? refineDraftContent : content;
     if (!textToCopy) return;
 
     try {
@@ -282,7 +299,8 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     setStreamedOutput('');
     
     // Keep only the selected sentence during regeneration
-    const sentences = splitIntoSentences(content);
+    const generationSourceContent = isRefineMode ? refineDraftContent : content;
+    const sentences = splitIntoSentences(generationSourceContent);
     const keptSentence =
       refinedSentenceIndex !== null && refinedSentenceIndex < sentences.length
         ? sentences[refinedSentenceIndex]
@@ -332,13 +350,14 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
   const applySentenceSuggestion = (suggestion: string) => {
     if (selectedSentenceIndex === null) return;
-    const sentences = splitIntoSentences(latestContentRef.current);
+    const sentences = splitIntoSentences(refineDraftContent);
     if (selectedSentenceIndex >= sentences.length) return;
 
     const normalizedSuggestion = splitIntoSentences(suggestion.trim())[0] ?? suggestion.trim();
     sentences[selectedSentenceIndex] = normalizedSuggestion;
     const newContent = sentences.join(' ');
-    mindmap.updateNodeData(id, { content: newContent });
+    setRefineDraftContent(newContent);
+    setRefineSentenceChanges((current) => ({ ...current, [selectedSentenceIndex]: 'suggestion' }));
     setRefinedSentenceIndex(selectedSentenceIndex);
     setHoveredSentence(null);
     setPreviewSuggestion(null);
@@ -350,7 +369,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   const generateSentenceSuggestions = async () => {
     if (selectedSentenceIndex === null || isGeneratingSuggestions) return;
 
-    const sentences = splitIntoSentences(content);
+    const sentences = splitIntoSentences(refineDraftContent);
     const selectedSentence = sentences[selectedSentenceIndex];
     if (!selectedSentence) return;
 
@@ -368,7 +387,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
           nodeId: id,
           platform,
           sentence: selectedSentence,
-          fullPostText: content,
+          fullPostText: refineDraftContent,
         }),
       });
 
@@ -397,7 +416,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
   const applyCustomSentenceSuggestion = () => {
     if (selectedSentenceIndex === null) return;
-    const sentences = splitIntoSentences(latestContentRef.current);
+    const sentences = splitIntoSentences(refineDraftContent);
     if (selectedSentenceIndex < 0 || selectedSentenceIndex >= sentences.length) return;
 
     const customText = customSentenceInput.trim();
@@ -409,7 +428,56 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     const normalizedCustomText = splitIntoSentences(customText)[0] ?? customText;
     sentences[selectedSentenceIndex] = normalizedCustomText;
     const newContent = sentences.join(' ');
-    mindmap.updateNodeData(id, { content: newContent });
+    setRefineDraftContent(newContent);
+    setRefineSentenceChanges((current) => ({ ...current, [selectedSentenceIndex]: 'custom' }));
+    setRefinedSentenceIndex(selectedSentenceIndex);
+    setHoveredSentence(null);
+    setPreviewSuggestion(null);
+    setShowCustomEntryModal(false);
+    setCustomSentenceInput('');
+    setCustomSentenceError(null);
+  };
+
+  const applyDeleteSentence = () => {
+    if (selectedSentenceIndex === null) return;
+    const sentences = splitIntoSentences(refineDraftContent);
+    if (selectedSentenceIndex < 0 || selectedSentenceIndex >= sentences.length) return;
+
+    setRefineSentenceChanges((current) => {
+      if (current[selectedSentenceIndex] === 'deleted') {
+        const next = { ...current };
+        delete next[selectedSentenceIndex];
+        return next;
+      }
+      return { ...current, [selectedSentenceIndex]: 'deleted' };
+    });
+    setRefinedSentenceIndex(selectedSentenceIndex);
+    setHoveredSentence(null);
+    setPreviewSuggestion(null);
+    setShowCustomEntryModal(false);
+    setCustomSentenceInput('');
+    setCustomSentenceError(null);
+  };
+
+  const restoreOriginalSentence = () => {
+    if (selectedSentenceIndex === null) return;
+    const draftSentences = splitIntoSentences(refineDraftContent);
+    const originalSentences = splitIntoSentences(content);
+    if (
+      selectedSentenceIndex < 0 ||
+      selectedSentenceIndex >= draftSentences.length ||
+      selectedSentenceIndex >= originalSentences.length
+    ) {
+      return;
+    }
+
+    draftSentences[selectedSentenceIndex] = originalSentences[selectedSentenceIndex];
+    setRefineDraftContent(draftSentences.join(' '));
+    setRefineSentenceChanges((current) => {
+      const next = { ...current };
+      delete next[selectedSentenceIndex];
+      return next;
+    });
     setRefinedSentenceIndex(selectedSentenceIndex);
     setHoveredSentence(null);
     setPreviewSuggestion(null);
@@ -419,14 +487,25 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   };
 
   const selectedCount = refinedSentenceIndex === null ? 0 : 1;
-  const totalSentences = splitIntoSentences(content).length;
+  const refineWorkingContent = isRefineMode ? refineDraftContent : content;
+  const hasDeletedSentences = Object.values(refineSentenceChanges).some((kind) => kind === 'deleted');
+  const hasPendingRefineChanges = refineDraftContent.trim() !== content.trim() || hasDeletedSentences;
+  const selectedSentenceIsDeleted =
+    selectedSentenceIndex !== null && refineSentenceChanges[selectedSentenceIndex] === 'deleted';
+  const totalSentences = splitIntoSentences(refineWorkingContent).length;
   const selectedSentenceText = useMemo(() => {
     if (selectedSentenceIndex === null) return '';
-    const sentences = splitIntoSentences(content);
+    const sentences = splitIntoSentences(refineWorkingContent);
     if (selectedSentenceIndex < 0 || selectedSentenceIndex >= sentences.length) return '';
     return sentences[selectedSentenceIndex];
+  }, [refineWorkingContent, selectedSentenceIndex]);
+  const originalSelectedSentenceText = useMemo(() => {
+    if (selectedSentenceIndex === null) return '';
+    const originalSentences = splitIntoSentences(content);
+    if (selectedSentenceIndex < 0 || selectedSentenceIndex >= originalSentences.length) return '';
+    return originalSentences[selectedSentenceIndex];
   }, [content, selectedSentenceIndex]);
-  const baseDisplayContent = isGenerating && streamedOutput ? streamedOutput : content;
+  const baseDisplayContent = isGenerating && streamedOutput ? streamedOutput : refineWorkingContent;
   const displayContent = useMemo(() => {
     if (
       !isRefineMode ||
@@ -438,7 +517,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
       return baseDisplayContent;
     }
 
-    const sentences = splitIntoSentences(content);
+    const sentences = splitIntoSentences(refineWorkingContent);
     if (selectedSentenceIndex < 0 || selectedSentenceIndex >= sentences.length) {
       return baseDisplayContent;
     }
@@ -446,13 +525,47 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     return sentences.join(' ');
   }, [
     baseDisplayContent,
-    content,
+    refineWorkingContent,
     isGenerating,
     isRefineMode,
     previewSuggestion,
     selectedSentenceIndex,
     showSuggestionsMenu,
   ]);
+
+  const enterRefineMode = () => {
+    setRefineDraftContent(content);
+    setRefineSentenceChanges({});
+    setRefinedSentenceIndex(null);
+    setHoveredSentence(null);
+    closeSentenceAssistant();
+    setIsRefineMode(true);
+  };
+
+  const exitRefineModeWithoutSaving = () => {
+    setIsRefineMode(false);
+    setRefineDraftContent(content);
+    setRefineSentenceChanges({});
+    setRefinedSentenceIndex(null);
+    setHoveredSentence(null);
+    closeSentenceAssistant();
+  };
+
+  const handleRefineDone = () => {
+    const draftSentences = splitIntoSentences(refineDraftContent);
+    const persistedSentences = draftSentences.filter((_, index) => refineSentenceChanges[index] !== 'deleted');
+    const persistedContent = persistedSentences.join(' ');
+    const trimmedDraft = persistedContent.trim();
+    const trimmedContent = content.trim();
+    if (trimmedDraft !== trimmedContent) {
+      mindmap.updateNodeData(id, { content: persistedContent });
+    }
+    setIsRefineMode(false);
+    setRefineSentenceChanges({});
+    setRefinedSentenceIndex(null);
+    setHoveredSentence(null);
+    closeSentenceAssistant();
+  };
 
   return (
     <div
@@ -492,6 +605,17 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         onConfirm={handleDelete}
         title="Delete Social Draft"
         itemName={data?.label || 'Social Draft'}
+        phraseEnforce={false}
+      />
+      <DeleteConfirmationModal
+        isOpen={isCancelRefineModalOpen}
+        onClose={() => setIsCancelRefineModalOpen(false)}
+        onConfirm={() => {
+          exitRefineModeWithoutSaving();
+          setIsCancelRefineModalOpen(false);
+        }}
+        title="Discard Refine Changes"
+        itemName="Unsaved refine edits"
         phraseEnforce={false}
       />
 
@@ -626,7 +750,11 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
           <button
             type="button"
             onClick={() => {
-              setIsRefineMode(!isRefineMode);
+              if (isRefineMode) {
+                exitRefineModeWithoutSaving();
+                return;
+              }
+              enterRefineMode();
             }}
             className={`nodrag mb-3 flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
               isRefineMode 
@@ -643,36 +771,71 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         )}
       </div>
 
-      {/* Refine Mode Controls */}
+      {/* Refine Mode Workspace */}
       {isRefineMode && content && (
-        <div className="mb-3 rounded-xl border-2 border-yellow-300/50 bg-yellow-50/80 p-2">
-          <div className="mb-2 flex items-center justify-between text-[10px]">
-            <span className="font-semibold text-yellow-800">
-              <FontAwesomeIcon icon={faHighlighter} className="mr-1" />
-              Refine Mode
-            </span>
-            <span className="text-yellow-700">
-              {selectedCount} of {totalSentences} selected
-            </span>
+        <div className="refine-shell mb-3 overflow-hidden rounded-2xl border border-amber-300/70 bg-gradient-to-br from-amber-50 via-yellow-50 to-white p-3">
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/70 bg-white/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-800">
+                <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-amber-500 opacity-75"></span>
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                Live Refine
+              </div>
+              <div className="mt-1 text-sm font-semibold text-amber-900">
+                <FontAwesomeIcon icon={faHighlighter} className="mr-1.5 text-amber-600" />
+                Refine Workspace
+              </div>
+              <p className="mt-1 text-[11px] text-amber-800/80">
+                Click one sentence, test edits, then press <span className="font-semibold">Done</span> to save.
+              </p>
+            </div>
           </div>
+
+          <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-amber-100">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                selectedCount > 0 ? 'w-full bg-amber-500' : 'w-0 bg-amber-500'
+              }`}
+            />
+          </div>
+
           <div className="flex gap-2 text-[10px]">
             <button
               type="button"
-              onClick={() => setRefinedSentenceIndex(null)}
-              className="rounded bg-white px-2 py-1.5 font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+              onClick={() => setIsCancelRefineModalOpen(true)}
+              disabled={!hasPendingRefineChanges}
+              className={`rounded-md border px-2.5 py-1.5 font-semibold transition-all ${
+                hasPendingRefineChanges
+                  ? 'border-red-300 bg-red-100 text-red-700 hover:-translate-y-0.5 hover:bg-red-200'
+                  : 'cursor-not-allowed border-red-100 bg-red-50 text-red-300'
+              }`}
             >
-              Clear selection
+              Cancel
             </button>
             <button
               type="button"
-              onClick={() => setIsRefineMode(false)}
-              className="ml-auto rounded bg-yellow-400 px-2 py-1.5 font-semibold text-yellow-900 shadow-sm hover:bg-yellow-500"
+              onClick={handleRefineDone}
+              className="ml-auto rounded-md bg-amber-400 px-3 py-1.5 font-semibold text-amber-900 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-amber-500"
             >
               Done
             </button>
           </div>
-          <div className="mt-2 text-[9px] text-yellow-700/70">
-            Pick one sentence to preserve on regenerate. Hover any sentence for suggestions, click to switch selection.
+
+          <div
+            className={`mt-3 flex items-start gap-2 rounded-xl border px-3 py-2 text-[11px] ${
+              hasPendingRefineChanges
+                ? 'border-red-300/80 bg-red-50 text-red-900'
+                : 'border-amber-300/70 bg-amber-50 text-amber-900'
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={faTriangleExclamation}
+              className={`mt-0.5 ${hasPendingRefineChanges ? 'text-red-600' : 'text-amber-600'}`}
+            />
+            <p>
+              Refine changes are only saved when you click <span className="font-semibold">Done</span>.
+              {hasPendingRefineChanges ? ' You have unsaved refine edits to apply.' : ''}
+            </p>
           </div>
         </div>
       )}
@@ -716,6 +879,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                 hoveredSentence={hoveredSentence}
                 setHoveredSentence={setHoveredSentence}
                 activeSentenceIndex={selectedSentenceIndex}
+                sentenceChangeMap={refineSentenceChanges}
               />
             ) : (
               <ReactMarkdown>
@@ -792,6 +956,17 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                     <FontAwesomeIcon icon={faComment} className="mr-1.5 text-body-color" />
                     Custom
                   </button>
+                  <button
+                    type="button"
+                    onClick={applyDeleteSentence}
+                    className={`rounded-lg border px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 ${
+                      selectedSentenceIsDeleted
+                        ? 'border-red-300 bg-red-200'
+                        : 'border-red-50 bg-red-50'
+                    }`}
+                  >
+                    {selectedSentenceIsDeleted ? 'Restore' : 'Delete'}
+                  </button>
                 </div>
 
                 {suggestionsError ? (
@@ -800,11 +975,33 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
 
                 {generatedSuggestions.length > 0 ? (
                   <div className="mb-2 space-y-2">
+                    <div
+                      className="suggestion-card group rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-md"
+                      style={{ animationDelay: '0ms' }}
+                    >
+                      <div className="p-2.5">
+                        <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-amber-700">
+                          Original Sentence
+                        </div>
+                        <p className="rounded-md border border-amber-100 bg-white/80 px-2 py-1.5 text-[11px] leading-relaxed text-slate-800">
+                          "{originalSelectedSentenceText || 'No original sentence available.'}"
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-end border-t border-amber-100 px-2.5 py-2">
+                        <button
+                          type="button"
+                          onClick={restoreOriginalSentence}
+                          className="rounded-md bg-white px-2.5 py-1 text-[10px] font-semibold text-amber-700 ring-1 ring-amber-300 transition-all duration-200 hover:scale-[1.03] hover:bg-amber-500 hover:text-white"
+                        >
+                          Use Original
+                        </button>
+                      </div>
+                    </div>
                     {generatedSuggestions.map((suggestion, index) => (
                       <div
                         key={`${suggestion}-${index}`}
                         className="suggestion-card group rounded-xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-0 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-                        style={{ animationDelay: `${index * 70}ms` }}
+                        style={{ animationDelay: `${(index + 1) * 70}ms` }}
                         onMouseEnter={() => setPreviewSuggestion(suggestion)}
                         onMouseLeave={() => setPreviewSuggestion(null)}
                       >
@@ -876,10 +1073,42 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                 )}
               </div>
               <style jsx>{`
+                .refine-shell {
+                  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+                  animation: refinePanelIn 260ms cubic-bezier(0.22, 1, 0.36, 1);
+                }
+
+                .refine-dot {
+                  animation: refinePulse 1.6s ease-in-out infinite;
+                }
+
                 .suggestion-card {
                   opacity: 0;
                   transform: translateY(8px) scale(0.98);
                   animation: suggestionReveal 280ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+                }
+
+                @keyframes refinePanelIn {
+                  from {
+                    opacity: 0;
+                    transform: translateY(6px);
+                  }
+                  to {
+                    opacity: 1;
+                    transform: translateY(0);
+                  }
+                }
+
+                @keyframes refinePulse {
+                  0%,
+                  100% {
+                    opacity: 1;
+                    transform: scale(1);
+                  }
+                  50% {
+                    opacity: 0.55;
+                    transform: scale(0.85);
+                  }
                 }
 
                 @keyframes suggestionReveal {
