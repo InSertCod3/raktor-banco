@@ -8,6 +8,7 @@ export function buildPlatformPrompt(args: {
   proofPointTexts?: string[];
   toneValues?: string[];
   messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
+  keptSentences?: string;
 }): { system: string; user: string } {
   const idea = args.ideaText.trim();
   const contextTexts = (args.contextTexts ?? [])
@@ -44,6 +45,10 @@ export function buildPlatformPrompt(args: {
     ? ['', 'Context from connected idea nodes:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
     : [];
 
+  const keptSentencesBlock = args.keptSentences?.trim()
+    ? ['', 'Keep these sentences from previous generation:', args.keptSentences.trim()]
+    : [];
+
   const system = [
     'You are an assistant that writes short, platform-aware social posts.',
     'Keep the output concise and scannable.',
@@ -69,6 +74,7 @@ export function buildPlatformPrompt(args: {
       ...painPointBlock,
       ...proofPointBlock,
       ...contextBlock,
+      ...keptSentencesBlock,
       '',
       `Messaging length preference: ${messagingLengthLabel}`,
       '',
@@ -102,6 +108,7 @@ export function buildPlatformPrompt(args: {
       ...painPointBlock,
       ...proofPointBlock,
       ...contextBlock,
+      ...keptSentencesBlock,
       '',
       `Messaging length preference: ${messagingLengthLabel}`,
       '',
@@ -135,6 +142,7 @@ export function buildPlatformPrompt(args: {
     ...painPointBlock,
     ...proofPointBlock,
     ...contextBlock,
+    ...keptSentencesBlock,
     '',
     `Messaging length preference: ${messagingLengthLabel}`,
     '',
@@ -179,5 +187,42 @@ export function buildSuggestionPrompt(args: {
   return { system, user };
 }
 
+export function buildSentenceReplacementPrompt(args: {
+  platform: PlatformType | 'INSTAGRAM';
+  sentence: string;
+  fullPostText: string;
+}): { system: string; user: string } {
+  const platformLabel =
+    args.platform === PlatformType.LINKEDIN
+      ? 'LinkedIn'
+      : args.platform === PlatformType.FACEBOOK
+      ? 'Facebook'
+      : 'Instagram';
+
+  const system = [
+    'You rewrite one sentence for a social post.',
+    'Return strict JSON only with this shape: {"suggestions":["...", "...", "..."]}',
+    'Each suggestion must be exactly one sentence.',
+    'Keep meaning aligned with the original sentence and fit the platform tone.',
+    'Do not add markdown or extra keys.',
+  ].join('\n');
+
+  const user = [
+    `Platform: ${platformLabel}`,
+    '',
+    'Original sentence:',
+    `"${args.sentence.trim()}"`,
+    '',
+    'Full post for context:',
+    `"${args.fullPostText.trim()}"`,
+    '',
+    'Task:',
+    '- Generate 3 replacement sentence options.',
+    '- Keep them concise and scannable.',
+    '- Do not repeat the exact original sentence.',
+  ].join('\n');
+
+  return { system, user };
+}
 
 

@@ -13,6 +13,7 @@ const GenerateSchema = z.object({
   nodeId: z.string().min(1),
   socialNodeId: z.string().min(1).optional(),
   platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
+  keptSentences: z.string().optional(),
 });
 
 type MessagingLength = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
@@ -75,7 +76,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { mapId, nodeId, socialNodeId: requestedSocialNodeId } = parsed.data;
+  const { mapId, nodeId, socialNodeId: requestedSocialNodeId, keptSentences } = parsed.data;
   const platform = parsed.data.platform as PlatformType | 'INSTAGRAM';
 
   const requestedNode = await prisma.node.findFirst({
@@ -207,6 +208,7 @@ export async function POST(req: Request) {
     proofPointTexts,
     toneValues,
     messagingLength: getMessagingLengthFromSocialData(requestedNode.data, platform),
+    keptSentences: keptSentences,
   });
 
   const last = await prisma.generatedContent.findFirst({

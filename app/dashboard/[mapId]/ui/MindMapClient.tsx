@@ -542,6 +542,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     },
     options?: {
       socialNodeId?: string;
+      keptSentences?: string;
     },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     const res = await fetch("/api/generate", {
@@ -552,6 +553,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         nodeId,
         platform,
         socialNodeId: options?.socialNodeId,
+        keptSentences: options?.keptSentences,
       }),
     });
 

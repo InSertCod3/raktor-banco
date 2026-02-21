@@ -42,6 +42,7 @@ export type MindMapContextValue = {
     },
     options?: {
       socialNodeId?: string;
+      keptSentences?: string;
     }
   ) => Promise<{
     generation: Generation;
