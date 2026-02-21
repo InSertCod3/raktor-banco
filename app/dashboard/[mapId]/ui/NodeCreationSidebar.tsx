@@ -134,11 +134,11 @@ export default function NodeCreationSidebar() {
             type="button"
             aria-label="Expand toolbar"
             onClick={() => setIsOpen(true)}
-            className="pointer-events-auto group absolute left-2 top-0 z-30 flex h-12 -translate-y-[115%] items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-3.5 text-blue-800 shadow-[0_8px_20px_rgba(15,23,42,0.16)] transition duration-200 sm:left-0 sm:top-1/2 sm:-translate-x-1/4 sm:-translate-y-1/2 sm:hover:translate-x-0"
+            className="pointer-events-auto group absolute left-2 top-1/2 z-30 flex h-12 -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full border border-blue-200 bg-gradient-to-r from-blue-50 to-white px-3.5 text-blue-800 shadow-[0_8px_20px_rgba(15,23,42,0.16)] transition duration-200 sm:left-4 sm:translate-x-0"
           >
             <span className="pointer-events-none absolute inset-0 rounded-full bg-blue-200/60 opacity-0 blur-md transition duration-200 group-hover:opacity-100" />
             <FontAwesomeIcon icon={faChevronRight} className="relative text-xs transition duration-200 group-hover:scale-110" />
-            <span className="relative text-[11px] font-semibold uppercase tracking-[0.1em]">Show Tools</span>
+            <span className="relative text-[11px] font-semibold uppercase tracking-[0.1em]">Tools</span>
           </button>
         ) : null}
 

@@ -4,6 +4,7 @@ import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import BackgroundGrid from '@/app/components/BackgroundGrid';
 import MapListClient from './ui/MapListClient';
 import LogoutButton from '@/app/components/LogoutButton';
+import UserMenu from '@/app/components/UserMenu';
 import { getUsageData, getUserSubscriptionTier } from '@/app/lib/usage';
 import { SubscriptionTier } from '@prisma/client';
 
@@ -108,17 +109,7 @@ export default async function MindAppHome({
               New map
             </Link>
             {/* User Menu */}
-            <div className="relative group">
-              <button className="flex items-center gap-2 rounded-full border border-stroke bg-white/80 px-2 py-1.5 transition hover:bg-white">
-                <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-200 to-amber-200" />
-                <svg className="h-4 w-4 text-body-color" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              <div className="absolute right-0 top-full z-50 mt-1 hidden w-40 rounded-xl border border-stroke bg-white py-1 shadow-lg group-hover:block">
-                <LogoutButton />
-              </div>
-            </div>
+            <UserMenu />
           </div>
         </div>
 

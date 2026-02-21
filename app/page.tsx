@@ -113,7 +113,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="relative mt-8 lg:mt-0">
+          <div className="hidden relative mt-8 lg:mt-0 lg:flex xl:flex 2xl:flex">
             <style>{`
               .group-1,
               .group-2,
