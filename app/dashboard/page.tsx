@@ -102,12 +102,6 @@ export default async function MindAppHome({
               {dbError ? 'Database offline' : `${maps.length} map${maps.length === 1 ? '' : 's'}`}
             </span>
             <span className="rounded-full border border-stroke bg-white/80 px-3 py-1">LinkedIn + Facebook + instagram</span>
-            <Link
-              href="/dashboard?create=1"
-              className="rounded-full bg-dark px-5 py-2 text-xs font-semibold uppercase tracking-wide text-white shadow-2 transition hover:bg-dark-2"
-            >
-              New map
-            </Link>
             {/* User Menu */}
             <UserMenu />
           </div>
