@@ -1,11 +1,12 @@
 import { BaseLlmInterface, type LlmGenerateArgs, type LlmGenerateResult } from '@/app/lib/llm/base';
+import { requireEnv } from '@/app/lib/utils';
 
 function getOllamaHost(): string {
-  return process.env.OLLAMA_HOST?.trim() || '';
+  return requireEnv('OLLAMA_HOST');
 }
 
 export function getOllamaModelName(): string {
-  return process.env.OLLAMA_MODEL?.trim() || '';
+  return requireEnv('OLLAMA_MODEL');
 }
 
 export class OllamaLlm extends BaseLlmInterface {

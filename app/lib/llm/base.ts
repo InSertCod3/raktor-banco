@@ -1,4 +1,4 @@
-export type LlmProvider = 'openai' | 'ollama';
+export type LlmProvider = 'gemini' | 'ollama';
 
 export type LlmMessage = {
   role: 'system' | 'user' | 'assistant';

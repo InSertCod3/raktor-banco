@@ -1,23 +1,25 @@
 import { BaseLlmInterface, type LlmProvider } from '@/app/lib/llm/base';
+import { GeminiLlm } from '@/app/lib/llm/gemini';
 import { OllamaLlm } from '@/app/lib/llm/ollama';
-import { OpenAILlm } from '@/app/lib/llm/openai';
 
 export function getLlmProvider(): LlmProvider {
-  const configured = process.env.LLM_PROVIDER?.trim().toLowerCase();
-  if (configured === 'openai' || configured === 'ollama') {
+  const configured = process.env.LLM_PROVIDER_TYPE?.trim().toLowerCase();
+  if (configured === 'gemini' || configured === 'ollama') {
     return configured;
   }
 
-  // Safe default: if OpenAI key is present, assume production path.
-  return process.env.OPENAI_API_KEY ? 'openai' : 'ollama';
+  throw new Error('Invalid or missing LLM_PROVIDER_TYPE. Set it to "gemini" or "ollama".');
 }
 
 export function getLlmClient(provider: LlmProvider = getLlmProvider()): BaseLlmInterface {
-  if (provider === 'ollama') {
-    return new OllamaLlm();
+  switch (provider) {
+    case 'ollama':
+      return new OllamaLlm();
+    case 'gemini':
+      return new GeminiLlm();
+    default:
+      throw new Error(`Unsupported LLM provider: ${String(provider)}`);
   }
-
-  return new OpenAILlm();
 }
 
 export async function generateSocialText(args: {

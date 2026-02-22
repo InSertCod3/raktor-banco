@@ -8,7 +8,7 @@ Visual-first mind mapping with platform-aware content generation (LinkedIn + Fac
 - React Flow (`@xyflow/react`)
 - Tailwind CSS
 - Prisma + PostgreSQL
-- OpenAI (for generation)
+- Gemini (for generation)
 
 ### Setup
 
@@ -22,9 +22,10 @@ npm install
   - Copy `env.example` → `.env` (or set env vars in your host)
   - Required:
     - `DATABASE_URL`
-    - `OPENAI_API_KEY` (needed for generation)
+    - `GEMINI_API_KEY` (needed for generation)
   - Optional:
-    - `OPENAI_MODEL` (defaults to `gpt-4o-mini`)
+    - `GEMINI_MODEL` (defaults to `gemini-2.5-flash-lite`)
+    - `GEMINI_BASE_URL` (defaults to `https://aiplatform.googleapis.com/v1`)
 
 - **Database**
 
