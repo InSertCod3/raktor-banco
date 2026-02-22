@@ -955,12 +955,20 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           }`}
         >
           <div className="pointer-events-auto w-full flex items-center gap-3">
-            <input
-              value={mapTitle}
-              onChange={(e) => setMapTitle(e.target.value)}
-              className="w-full bg-transparent text-sm font-semibold text-dark outline-hidden"
-              aria-label="Map title"
-            />
+            <div className="group min-w-0 flex-1">
+              <input
+                value={mapTitle}
+                onChange={(e) => setMapTitle(e.target.value)}
+                className="w-full bg-transparent text-sm font-semibold text-dark outline-hidden"
+                aria-label="Map title"
+              />
+              <div className="mt-1 h-px w-full bg-stone-200">
+                <div className="h-px w-12 bg-stone-500 transition-all duration-200 ease-out group-focus-within:w-full group-focus-within:bg-primary" />
+              </div>
+              <p className="mt-1 text-[10px] text-stone-500">
+                Maydove is AI and can make mistakes. Check important info.
+              </p>
+            </div>
             {hasUnsavedTitleChanges ? (
               <>
                 <button
