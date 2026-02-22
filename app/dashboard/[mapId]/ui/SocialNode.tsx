@@ -1010,6 +1010,75 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                     </p>
                   </div>
                 ) : null}
+                <div
+                  className={[
+                    "mb-3 overflow-hidden rounded-xl border bg-primary/5 transition-all duration-300 ease-out",
+                    showCustomEntryModal
+                      ? "max-h-80 border-primary/20 opacity-100 translate-y-0"
+                      : "max-h-0 border-transparent opacity-0 -translate-y-1 pointer-events-none",
+                  ].join(" ")}
+                >
+                  <div className="p-3">
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <div>
+                        <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-primary">
+                          Custom Replacement
+                        </div>
+                        <p className="mt-1 text-[11px] text-body-color">
+                          Your text previews inline while you type.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomEntryModal(false);
+                          setCustomSentenceInput('');
+                          setCustomSentenceError(null);
+                          setPreviewSuggestion(null);
+                        }}
+                        className="rounded-md border border-stroke bg-white px-2 py-1 text-[11px] text-body-color hover:bg-gray-50"
+                      >
+                        <FontAwesomeIcon icon={faXmark} />
+                      </button>
+                    </div>
+                    <textarea
+                      value={customSentenceInput}
+                      onChange={(e) => {
+                        const next = e.target.value;
+                        setCustomSentenceInput(next);
+                        setCustomSentenceError(null);
+                        setPreviewSuggestion(next.trim() || null);
+                      }}
+                      placeholder="Type a new sentence for this spot..."
+                      rows={4}
+                      className="nodrag w-full rounded-xl border border-stroke bg-white px-3 py-2 text-sm text-dark outline-none focus:border-primary"
+                    />
+                    {customSentenceError ? (
+                      <p className="mt-2 text-xs text-red-600">{customSentenceError}</p>
+                    ) : null}
+                    <div className="mt-3 flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomEntryModal(false);
+                          setCustomSentenceInput('');
+                          setCustomSentenceError(null);
+                          setPreviewSuggestion(null);
+                        }}
+                        className="rounded-lg border border-stroke px-3 py-2 text-xs font-semibold text-body-color hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={applyCustomSentenceSuggestion}
+                        className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-blue-dark"
+                      >
+                        Apply Replacement
+                      </button>
+                    </div>
+                  </div>
+                </div>
                 <div className="mb-3 flex gap-2">
                   <button
                     type="button"
@@ -1106,52 +1175,6 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                 ) : (
                   <div className="mb-2 rounded-md bg-blue-50 px-2 py-1.5 text-[11px] text-blue-700">
                     Generate suggestions, then press <span className="font-semibold">Use this</span> to drop one in.
-                  </div>
-                )}
-                {showCustomEntryModal && (
-                  <div className="mt-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
-                    <div className="mb-2">
-                      <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-primary">
-                        Custom Replacement
-                      </div>
-                      <p className="mt-1 text-[11px] text-body-color">Your text previews inline while you type.</p>
-                    </div>
-                    <textarea
-                      value={customSentenceInput}
-                      onChange={(e) => {
-                        const next = e.target.value;
-                        setCustomSentenceInput(next);
-                        setCustomSentenceError(null);
-                        setPreviewSuggestion(next.trim() || null);
-                      }}
-                      placeholder="Type a new sentence for this spot..."
-                      rows={4}
-                      className="nodrag w-full rounded-xl border border-stroke bg-white px-3 py-2 text-sm text-dark outline-none focus:border-primary"
-                    />
-                    {customSentenceError ? (
-                      <p className="mt-2 text-xs text-red-600">{customSentenceError}</p>
-                    ) : null}
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowCustomEntryModal(false);
-                          setCustomSentenceInput('');
-                          setCustomSentenceError(null);
-                          setPreviewSuggestion(null);
-                        }}
-                        className="rounded-lg border border-stroke px-3 py-2 text-xs font-semibold text-body-color hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        onClick={applyCustomSentenceSuggestion}
-                        className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-blue-dark"
-                      >
-                        Apply Replacement
-                      </button>
-                    </div>
                   </div>
                 )}
               </div>
