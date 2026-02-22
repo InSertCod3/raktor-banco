@@ -131,8 +131,12 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
+  const [activeGenerations, setActiveGenerations] = useState(0);
   const lastSavedGraphRef = useRef<string>("");
+  const autosaveAbortRef = useRef<AbortController | null>(null);
+  const autosaveRequestSeqRef = useRef(0);
   const persistedTitleRef = useRef<string>("");
+  const isProcessingWork = activeGenerations > 0 || isSaving || isSavingTitle;
 
   const nodeTypes = useMemo(
     () => ({
@@ -278,35 +282,68 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   // Autosave graph
   useEffect(() => {
     if (!loaded) return;
+    if (activeGenerations > 0) return;
     const graphPayload = toPersistedGraph(nodes, edges);
     const graphSnapshot = JSON.stringify(graphPayload);
     if (graphSnapshot === lastSavedGraphRef.current) return;
 
-    let cancelled = false;
-    (async () => {
+    const requestSeq = ++autosaveRequestSeqRef.current;
+    const timeoutId = window.setTimeout(() => {
+      autosaveAbortRef.current?.abort();
+      const controller = new AbortController();
+      autosaveAbortRef.current = controller;
+
       setIsSaving(true);
-      try {
-        const res = await fetch(`/api/maps/${mapId}/graph`, {
-          method: "PUT",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(graphPayload),
-        });
-        if (!res.ok || cancelled) return;
-        lastSavedGraphRef.current = graphSnapshot;
-        toast.success("Saved", {
-          id: "autosave",
-          position: "top-center",
-          duration: 2000,
-        });
-      } finally {
-        if (!cancelled) setIsSaving(false);
-      }
-    })();
+      void (async () => {
+        try {
+          const res = await fetch(`/api/maps/${mapId}/graph`, {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(graphPayload),
+            signal: controller.signal,
+          });
+          if (!res.ok) return;
+          if (requestSeq !== autosaveRequestSeqRef.current) return;
+
+          lastSavedGraphRef.current = graphSnapshot;
+          toast.success("Saved", {
+            id: "autosave",
+            position: "top-center",
+            duration: 2000,
+          });
+        } catch (error) {
+          if (
+            error instanceof DOMException &&
+            error.name === "AbortError"
+          ) {
+            return;
+          }
+        } finally {
+          if (requestSeq === autosaveRequestSeqRef.current) {
+            setIsSaving(false);
+          }
+        }
+      })();
+    }, 350);
 
     return () => {
-      cancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, [loaded, mapId, nodes, edges]);
+  }, [loaded, mapId, nodes, edges, activeGenerations]);
+
+  useEffect(() => {
+    if (!isProcessingWork) return;
+
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [isProcessingWork]);
 
   async function saveTitleIfChanged() {
     if (!loaded) return;
@@ -545,151 +582,156 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       keptSentences?: string;
     },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
-    const res = await fetch("/api/generate", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        mapId,
-        nodeId,
-        platform,
-        socialNodeId: options?.socialNodeId,
-        keptSentences: options?.keptSentences,
-      }),
-    });
-
-    if (!res.ok) {
-      const data = (await res.json().catch(() => null)) as { error?: string } | null;
-      throw new Error(data?.error ?? "Generation failed.");
-    }
-
-    if (!res.body) {
-      throw new Error("Generation stream is unavailable.");
-    }
-
-    const upsertSocialNode = (socialNode: Node | undefined) => {
-      if (!socialNode) return;
-      setNodes((current) => {
-        const exists = current.some((node) => node.id === socialNode.id);
-        if (exists) {
-          return current.map((node) => (node.id === socialNode.id ? socialNode : node));
-        }
-        return [...current, socialNode];
+    setActiveGenerations((current) => current + 1);
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          mapId,
+          nodeId,
+          platform,
+          socialNodeId: options?.socialNodeId,
+          keptSentences: options?.keptSentences,
+        }),
       });
-    };
 
-    const upsertSocialEdge = (socialEdge: Edge | undefined) => {
-      if (!socialEdge) return;
-      const edgeWithDelete = {
-        ...socialEdge,
-        type: "deletable",
-        data: {
-          ...(socialEdge.data as Record<string, unknown> | undefined),
-          onDelete: deleteEdgeById,
-        },
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? "Generation failed.");
+      }
+
+      if (!res.body) {
+        throw new Error("Generation stream is unavailable.");
+      }
+
+      const upsertSocialNode = (socialNode: Node | undefined) => {
+        if (!socialNode) return;
+        setNodes((current) => {
+          const exists = current.some((node) => node.id === socialNode.id);
+          if (exists) {
+            return current.map((node) => (node.id === socialNode.id ? socialNode : node));
+          }
+          return [...current, socialNode];
+        });
       };
 
-      setEdges((current) => {
-        const exists = current.some((edge) => edge.id === edgeWithDelete.id);
-        if (exists) {
-          return current.map((edge) => (edge.id === edgeWithDelete.id ? edgeWithDelete : edge));
-        }
-        return [...current, edgeWithDelete];
-      });
-    };
+      const upsertSocialEdge = (socialEdge: Edge | undefined) => {
+        if (!socialEdge) return;
+        const edgeWithDelete = {
+          ...socialEdge,
+          type: "deletable",
+          data: {
+            ...(socialEdge.data as Record<string, unknown> | undefined),
+            onDelete: deleteEdgeById,
+          },
+        };
 
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let streamedSocialNodeId: string | null = null;
-    let finalGeneration: Generation | undefined;
-    let finalSocialNode: Node | undefined;
-    let finalSocialEdge: Edge | undefined;
-
-    const processLine = (line: string) => {
-      const event = JSON.parse(line) as {
-        type?: "start" | "delta" | "done" | "error";
-        error?: string;
-        delta?: string;
-        socialNodeId?: string;
-        socialNode?: Node;
-        socialEdge?: Edge;
-        generation?: Generation;
+        setEdges((current) => {
+          const exists = current.some((edge) => edge.id === edgeWithDelete.id);
+          if (exists) {
+            return current.map((edge) => (edge.id === edgeWithDelete.id ? edgeWithDelete : edge));
+          }
+          return [...current, edgeWithDelete];
+        });
       };
 
-      if (event.type === "error") {
-        throw new Error(event.error ?? "Generation failed.");
-      }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let streamedSocialNodeId: string | null = null;
+      let finalGeneration: Generation | undefined;
+      let finalSocialNode: Node | undefined;
+      let finalSocialEdge: Edge | undefined;
 
-      if (event.type === "start") {
-        handlers?.onStart?.();
-        finalSocialNode = event.socialNode;
-        finalSocialEdge = event.socialEdge;
-        streamedSocialNodeId = event.socialNode?.id ?? null;
-        upsertSocialNode(event.socialNode);
-        upsertSocialEdge(event.socialEdge);
-        return;
-      }
+      const processLine = (line: string) => {
+        const event = JSON.parse(line) as {
+          type?: "start" | "delta" | "done" | "error";
+          error?: string;
+          delta?: string;
+          socialNodeId?: string;
+          socialNode?: Node;
+          socialEdge?: Edge;
+          generation?: Generation;
+        };
 
-      if (event.type === "delta" && event.delta) {
-        handlers?.onDelta?.(event.delta);
-        const socialNodeId = event.socialNodeId ?? streamedSocialNodeId;
-        if (socialNodeId) {
-          setNodes((current) =>
-            current.map((node) =>
-              node.id === socialNodeId
-                ? {
-                    ...node,
-                    data: {
-                      ...(node.data as Record<string, unknown>),
-                      content: `${String((node.data as { content?: unknown } | null)?.content ?? "")}${event.delta}`,
-                    },
-                  }
-                : node,
-            ),
-          );
+        if (event.type === "error") {
+          throw new Error(event.error ?? "Generation failed.");
         }
-        return;
-      }
 
-      if (event.type === "done") {
-        finalGeneration = event.generation;
-        finalSocialNode = event.socialNode;
-        finalSocialEdge = event.socialEdge;
-        upsertSocialNode(event.socialNode);
-        upsertSocialEdge(event.socialEdge);
-      }
-    };
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      let lineBreak = buffer.indexOf("\n");
-      while (lineBreak >= 0) {
-        const line = buffer.slice(0, lineBreak).trim();
-        buffer = buffer.slice(lineBreak + 1);
-        if (line) {
-          processLine(line);
+        if (event.type === "start") {
+          handlers?.onStart?.();
+          finalSocialNode = event.socialNode;
+          finalSocialEdge = event.socialEdge;
+          streamedSocialNodeId = event.socialNode?.id ?? null;
+          upsertSocialNode(event.socialNode);
+          upsertSocialEdge(event.socialEdge);
+          return;
         }
-        lineBreak = buffer.indexOf("\n");
+
+        if (event.type === "delta" && event.delta) {
+          handlers?.onDelta?.(event.delta);
+          const socialNodeId = event.socialNodeId ?? streamedSocialNodeId;
+          if (socialNodeId) {
+            setNodes((current) =>
+              current.map((node) =>
+                node.id === socialNodeId
+                  ? {
+                      ...node,
+                      data: {
+                        ...(node.data as Record<string, unknown>),
+                        content: `${String((node.data as { content?: unknown } | null)?.content ?? "")}${event.delta}`,
+                      },
+                    }
+                  : node,
+              ),
+            );
+          }
+          return;
+        }
+
+        if (event.type === "done") {
+          finalGeneration = event.generation;
+          finalSocialNode = event.socialNode;
+          finalSocialEdge = event.socialEdge;
+          upsertSocialNode(event.socialNode);
+          upsertSocialEdge(event.socialEdge);
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        let lineBreak = buffer.indexOf("\n");
+        while (lineBreak >= 0) {
+          const line = buffer.slice(0, lineBreak).trim();
+          buffer = buffer.slice(lineBreak + 1);
+          if (line) {
+            processLine(line);
+          }
+          lineBreak = buffer.indexOf("\n");
+        }
       }
-    }
 
-    const trailing = buffer.trim();
-    if (trailing) {
-      processLine(trailing);
-    }
+      const trailing = buffer.trim();
+      if (trailing) {
+        processLine(trailing);
+      }
 
-    if (!finalGeneration) {
-      throw new Error("Generation ended without a final result.");
-    }
+      if (!finalGeneration) {
+        throw new Error("Generation ended without a final result.");
+      }
 
-    return {
-      generation: finalGeneration,
-      socialNode: finalSocialNode,
-      socialEdge: finalSocialEdge,
-    };
+      return {
+        generation: finalGeneration,
+        socialNode: finalSocialNode,
+        socialEdge: finalSocialEdge,
+      };
+    } finally {
+      setActiveGenerations((current) => Math.max(0, current - 1));
+    }
   }
 
   async function listGenerations(
@@ -874,6 +916,15 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
             </Link>
           </div>
         </div>
+
+        {isProcessingWork ? (
+          <div className="pointer-events-none absolute right-2 top-3 z-20 rounded-full border border-blue-200 bg-blue-50/95 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-700 shadow-sm backdrop-blur sm:right-4 sm:top-4">
+            <span className="inline-flex items-center gap-2">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-blue-600" />
+              {activeGenerations > 0 ? "Generating content..." : "Saving changes..."}
+            </span>
+          </div>
+        ) : null}
 
         <NodeCreationSidebar />
 
