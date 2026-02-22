@@ -30,7 +30,7 @@ export default function NodeAddPanel({
 
   return (
     <div
-      className="absolute left-[calc(100%-2px)] top-1/2 z-20 -translate-y-1/2"
+      className="absolute left-[calc(100.5%)] top-1/2 z-20 -translate-y-1/2"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >

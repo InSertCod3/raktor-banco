@@ -23,6 +23,7 @@ export default function DeletableEdge({
   sourcePosition,
   targetPosition,
   data,
+  style,
   markerEnd,
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -37,7 +38,7 @@ export default function DeletableEdge({
 
   return (
     <>
-      <BaseEdge path={edgePath} markerEnd={markerEnd} />
+      <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
       <EdgeLabelRenderer>
         <div
           className="nodrag"

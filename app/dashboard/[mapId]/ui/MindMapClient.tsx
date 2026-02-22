@@ -30,6 +30,12 @@ import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
 import { REACT_FLOW_PANE_BACKGROUND } from "./constant";
 import {
+  EDGE_COLOR_NODE_HOOK_CTA,
+  EDGE_COLOR_NODE_PAINPOINT,
+  EDGE_COLOR_NODE_PROOFPOINT,
+  EDGE_COLOR_NODE_TONE,
+} from "./constant/colors";
+import {
   MindMapContext,
   type Generation,
   type NodeType,
@@ -73,6 +79,68 @@ const NODE_COLLISION_X = 390;
 const NODE_COLLISION_Y = 280;
 const NODE_GRID_STEP_X = 360;
 const NODE_GRID_STEP_Y = 220;
+const STRATEGY_NODE_TYPES = new Set<NodeType>([
+  "painpoint",
+  "proofpoint",
+  "tone",
+  "hookcta",
+]);
+type StrategyEdgeThemeType = "painpoint" | "proofpoint" | "tone" | "hookcta";
+const STRATEGY_EDGE_STROKE: Record<StrategyEdgeThemeType, string> = {
+  painpoint: EDGE_COLOR_NODE_PAINPOINT,
+  proofpoint: EDGE_COLOR_NODE_PROOFPOINT,
+  tone: EDGE_COLOR_NODE_TONE,
+  hookcta: EDGE_COLOR_NODE_HOOK_CTA,
+};
+type StrategyType = StrategyEdgeThemeType;
+
+function isStrategyNodeType(type: unknown): type is NodeType {
+  return typeof type === "string" && STRATEGY_NODE_TYPES.has(type as NodeType);
+}
+
+function getStrategyThemeType(sourceType: unknown, targetType: unknown): StrategyType | null {
+  if (isStrategyNodeType(sourceType)) return sourceType as StrategyType;
+  if (isStrategyNodeType(targetType)) return targetType as StrategyType;
+  return null;
+}
+
+function decorateEdgeForSourceType(
+  edge: Edge,
+  sourceType: unknown,
+  targetType: unknown,
+  onDelete: (edgeId: string) => void,
+): Edge {
+  const baseData = (edge.data as Record<string, unknown> | undefined) ?? {};
+  const outgoingFromStrategy = isStrategyNodeType(sourceType);
+  const themedType = getStrategyThemeType(sourceType, targetType);
+  if (!themedType) {
+    return {
+      ...edge,
+      type: "deletable",
+      data: {
+        ...baseData,
+        onDelete,
+      },
+    };
+  }
+
+  return {
+    ...edge,
+    type: "deletable",
+    animated: outgoingFromStrategy,
+    style: {
+      ...(outgoingFromStrategy ? { strokeDasharray: "6 4" } : {}),
+      stroke: STRATEGY_EDGE_STROKE[themedType],
+      strokeWidth: 1.8,
+      ...(edge.style as Record<string, unknown> | undefined),
+    },
+    data: {
+      ...baseData,
+      onDelete,
+      suggestion: true,
+    },
+  };
+}
 
 function clampPosition(position: { x: number; y: number }): { x: number; y: number } {
   return {
@@ -257,13 +325,14 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         ...node,
         position: clampPosition(node.position),
       }));
+      const nodeTypeById = new Map(hydratedNodes.map((node) => [node.id, node.type]));
       const hydratedEdges = data.map.edges.map((edge) => ({
-        ...edge,
-        type: "deletable",
-        data: {
-          ...(edge.data as Record<string, unknown>),
-          onDelete: deleteEdgeById,
-        },
+        ...decorateEdgeForSourceType(
+          edge,
+          nodeTypeById.get(edge.source),
+          nodeTypeById.get(edge.target),
+          deleteEdgeById,
+        ),
       }));
 
       setMapTitle(data.map.title);
@@ -377,14 +446,14 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   }
 
   function onConnect(conn: Connection) {
+    const sourceType = nodes.find((node) => node.id === conn.source)?.type;
+    const targetType = nodes.find((node) => node.id === conn.target)?.type;
     setEdges((eds) =>
       addEdge(
-        {
+        decorateEdgeForSourceType({
           ...conn,
           id: createId(),
-          type: "deletable",
-          data: { onDelete: deleteEdgeById },
-        },
+        } as Edge, sourceType, targetType, deleteEdgeById),
         eds,
       ),
     );
@@ -459,17 +528,17 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     };
 
     setNodes((ns) => [...ns, child]);
+    const edgeSourceType = parent.type;
+    const edgeTargetType = child.type;
     setEdges((es) => [
       ...es,
-      {
+      decorateEdgeForSourceType({
         id: createId(),
         source: edgeSourceId,
         target: id,
         sourceHandle: options?.sourceHandle,
         targetHandle: options?.targetHandle,
-        type: "deletable",
-        data: { onDelete: deleteEdgeById },
-      },
+      } as Edge, edgeSourceType, edgeTargetType, deleteEdgeById),
     ]);
     setSelectedNodeId(id);
     window.requestAnimationFrame(() => snapToNode(child));
@@ -560,7 +629,13 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       target: suggestionId,
       type: "deletable",
       animated: true,
-      style: { strokeDasharray: "6 4", stroke: "#8b5cf6", strokeWidth: 1.8 },
+      style: {
+        strokeDasharray: "6 4",
+        stroke: isStrategyNodeType(source.type)
+          ? STRATEGY_EDGE_STROKE[source.type as StrategyType]
+          : "#8b5cf6",
+        strokeWidth: 1.8,
+      },
       data: { onDelete: deleteEdgeById, suggestion: true },
     };
 
@@ -618,14 +693,14 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
       const upsertSocialEdge = (socialEdge: Edge | undefined) => {
         if (!socialEdge) return;
-        const edgeWithDelete = {
-          ...socialEdge,
-          type: "deletable",
-          data: {
-            ...(socialEdge.data as Record<string, unknown> | undefined),
-            onDelete: deleteEdgeById,
-          },
-        };
+        const sourceType = nodes.find((node) => node.id === socialEdge.source)?.type;
+        const targetType = nodes.find((node) => node.id === socialEdge.target)?.type;
+        const edgeWithDelete = decorateEdgeForSourceType(
+          socialEdge,
+          sourceType,
+          targetType,
+          deleteEdgeById,
+        );
 
         setEdges((current) => {
           const exists = current.some((edge) => edge.id === edgeWithDelete.id);
