@@ -8,7 +8,7 @@ import { Tooltip } from 'react-tooltip'
 
 export default function NodeCreationSidebar() {
   const { selectedNodeId, addChildNode, addRootNode } = useMindMap();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const creationLockRef = useRef<number | null>(null);
   const tooltipClassName =
     "z-20 max-w-[260px] rounded-xl border border-slate-700/70 bg-slate-900/95 px-3 py-2 text-xs font-medium leading-relaxed text-slate-100 shadow-xl backdrop-blur";

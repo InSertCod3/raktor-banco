@@ -894,13 +894,13 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
               disabled={!hasPendingRefineChanges}
               className={`group relative ml-auto inline-flex items-center justify-center overflow-hidden rounded-md px-3 py-1.5 font-semibold text-white ring-1 ring-offset-2 transition-all duration-300 ease-out focus:outline-none ${
                 hasPendingRefineChanges
-                  ? 'bg-blue-500 ring-blue-300 ring-offset-blue-200 hover:bg-blue-600 hover:ring-offset-blue-400 active:bg-blue-700'
+                  ? 'bg-green-600 ring-green-300 ring-offset-green-200 hover:bg-green-600 hover:ring-offset-green-400 active:bg-green-700'
                   : 'cursor-not-allowed bg-slate-300 text-slate-100 ring-slate-300 ring-offset-slate-200'
               }`}
             >
               <span className="absolute bottom-0 right-0 h-20 w-8 -mb-8 -mr-5 rotate-45 translate-x-1 bg-white opacity-10 transition-all duration-300 ease-out group-hover:translate-x-0" />
               <span className="absolute left-0 top-0 h-8 w-20 -ml-12 -mt-1 -translate-x-1 -rotate-45 bg-white opacity-10 transition-all duration-300 ease-out group-hover:translate-x-0" />
-              <span className="relative z-20">Done</span>
+              <span className="relative z-20">Accept</span>
             </button>
           </div>
 
