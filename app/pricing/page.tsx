@@ -3,6 +3,7 @@ import BackgroundGrid from '../components/BackgroundGrid';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { getUserSubscriptionTier } from '@/app/lib/usage';
 import PricingClient from './PricingClient';
+import Image from 'next/image';
 
 export default async function PricingPage() {
   // Get user's subscription tier if logged in
@@ -35,9 +36,13 @@ export default async function PricingPage() {
       <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-10">
         {/* Header */}
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">
-            MayDove
-          </div>
+          <Image
+            className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]"
+            src="/assets/images/logo/maydove_logo_only_w_text.svg"
+            alt="logo"
+            width={160}
+            height={40}
+          />
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <Link
               href="/"

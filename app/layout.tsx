@@ -21,7 +21,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </body>
-        <script src="//code.tidio.co/ldvmha19kg5t6vuilfqjatks5xmkazk6.js" async></script>
+        <script src="//code.tidio.co/m78662edpqll6cxelwzobatqa0dpczy8.js" async></script>
       </html>
     </ClerkProvider>
   );

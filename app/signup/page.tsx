@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { SignedIn, SignedOut, SignUpButton, useAuth } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import BackgroundGrid from '../components/BackgroundGrid';
+import Image from 'next/image';
 
 function AuthRedirectHandler() {
   const { userId } = useAuth();
@@ -65,7 +66,13 @@ export default function SignupPage() {
         <div className="grid w-full gap-12 lg:grid-cols-[1fr_1.2fr]">
           {/* Left Column - Form */}
           <section className="rounded-3xl border border-[#d4d0c4] bg-white/90 p-8 shadow-2 backdrop-blur">
-            <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">MayDove</div>
+            <Image
+              className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]"
+              src="/assets/images/logo/maydove_logo_only_w_text.svg"
+              alt="logo"
+              width={160}
+              height={40}
+            />
             
             <h1 className="mt-4 text-3xl font-semibold leading-tight text-[#2d3a33] sm:text-4xl">
               Start creating content smarter

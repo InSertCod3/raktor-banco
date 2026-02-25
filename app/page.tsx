@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { type Metadata } from "next";
+import Image from 'next/image';
 import BackgroundGrid from "./components/BackgroundGrid";
 import LandingFlowDemo from "./components/LandingFlowDemo";
 import FloatingBalls from "./components/FloatingBalls";
@@ -43,9 +44,13 @@ export default function Home() {
 
       <div className="relative mx-auto max-w-6xl px-4 pb-16 pt-10">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <div className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]">
-            MayDove
-          </div>
+            <Image
+              className="text-xs font-semibold uppercase tracking-[0.28em] text-[#687269]"
+              src="/assets/images/logo/maydove_logo_only_w_text.svg"
+              alt="logo"
+              width={160}
+              height={40}
+            />
             <div className="flex flex-wrap items-center gap-3 text-xs">
             <Link
               href="/pricing"

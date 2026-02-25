@@ -169,12 +169,19 @@ export default function PricingClient({ subscriptionTier }: PricingClientProps) 
                 ))}
               </ul>
 
-              <Link
-                href={getButtonHref(plan) || '#'}
+              <button
+                onClick={() => {
+                    const tidioChatApi = (window as any).tidioChatApi;
+                    if (tidioChatApi) {
+                      tidioChatApi.display(true);
+                      tidioChatApi.open();
+                      tidioChatApi.messageFromVisitor("Hello! I'd like to learn more about the " + plan.name + " plan. Can you help me?");
+                    }
+                  }}
                 className={`mt-auto w-full block rounded-full py-3 text-sm font-semibold uppercase tracking-wide text-center ${getButtonClass(plan)}`}
               >
                 {getButtonText(plan)}
-              </Link>
+              </button>
             </div>
           ))}
         </div>
