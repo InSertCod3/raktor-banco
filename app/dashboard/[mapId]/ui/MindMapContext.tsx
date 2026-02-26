@@ -25,6 +25,7 @@ export type MindMapContextValue = {
   updateNodeText: (nodeId: string, text: string) => void;
   updateNodeData: (nodeId: string, dataPatch: Record<string, unknown>) => void;
   getNodeText: (nodeId: string) => string;
+  getNodeById: (nodeId: string) => Node | undefined;
   addChildNode: (
     parentNodeId: string,
     type?: NodeType,

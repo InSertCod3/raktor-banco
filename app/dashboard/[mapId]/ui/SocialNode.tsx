@@ -5,7 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
 import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation, faPaperPlane, faMessage } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation, faPaperPlane, faMessage, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
@@ -20,6 +20,16 @@ type SocialNodeData = {
   content?: string;
   contentByPlatform?: Partial<Record<Platform, string>>;
   messagingLengthByPlatform?: Partial<Record<Platform, MessagingLengthOption | 'medium' | 'long'>>;
+  versionHistory?: ContentVersion[];
+  currentVersion?: number;
+};
+
+type ContentVersion = {
+  version: number;
+  content: string;
+  contentByPlatform: Partial<Record<Platform, string>>;
+  createdAt: string;
+  source: 'generate' | 'chat' | 'refine' | 'manual' | 'original';
 };
 
 type SocialNodeType = Node<SocialNodeData, 'social' | 'coldlead'>;
@@ -208,6 +218,11 @@ export default function SocialNode({
   const [customSentenceError, setCustomSentenceError] = useState<string | null>(null);
   const nodeContainerRef = React.useRef<HTMLDivElement | null>(null);
   
+  // Version management
+  const [showVersionDropdown, setShowVersionDropdown] = useState(false);
+  const versionHistory = (data?.versionHistory ?? []) as ContentVersion[];
+  const currentVersion = data?.currentVersion ?? 1;
+  
   // Chat mode state
   const [isChatMode, setIsChatMode] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -230,6 +245,12 @@ export default function SocialNode({
 
   const isFocused = selected || mindmap.selectedNodeId === id;
   const isColdLead = variant === 'coldlead';
+  
+  // Check if viewing an older version (not the most recent)
+  const latestVersion = versionHistory.length > 0 
+    ? Math.max(...versionHistory.map(v => v.version)) 
+    : currentVersion;
+  const isViewingOldVersion = currentVersion < latestVersion;
   const titleLabel = isColdLead ? 'Prospect Outreach' : 'Social Draft';
   const generationMode = isColdLead ? 'LINKEDIN_DM_LEAD' : 'SOCIAL_POST';
   const warningData = data as
@@ -353,7 +374,7 @@ export default function SocialNode({
         : '';
     
     try {
-      await mindmap.generate(
+      const result = await mindmap.generate(
         id,
         platform,
         {
@@ -362,6 +383,33 @@ export default function SocialNode({
         { outputNodeId: id, keptSentences: keptSentence || undefined, generationMode }
       );
       setStreamedOutput('');
+      
+      // Get the newly generated content from the result
+      const generatedContent = result.socialNode?.data?.content as string | undefined;
+      const generatedContentByPlatform = result.socialNode?.data?.contentByPlatform as Partial<Record<Platform, string>> | undefined;
+      
+      // Create v1 on first generation - use the NEW content
+      if (generatedContent) {
+        // Get the current version history after generation
+        const nodeAfterGeneration = mindmap.getNodeById ? mindmap.getNodeById(id) : null;
+        const versionHistoryAfter = ((nodeAfterGeneration?.data as SocialNodeData)?.versionHistory ?? []) as ContentVersion[];
+        const currentVersionAfter = ((nodeAfterGeneration?.data as SocialNodeData)?.currentVersion ?? 1) as number;
+        
+        // If no version history exists yet, create v1
+        if (versionHistoryAfter.length === 0) {
+          const originalVersion: ContentVersion = {
+            version: 1,
+            content: generatedContent,
+            contentByPlatform: generatedContentByPlatform ?? { [platform]: generatedContent },
+            createdAt: new Date().toISOString(),
+            source: 'original',
+          };
+          mindmap.updateNodeData(id, {
+            versionHistory: [originalVersion],
+            currentVersion: 1,
+          });
+        }
+      }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Generation failed.';
       setError(errorMessage);
@@ -440,6 +488,40 @@ export default function SocialNode({
                       [platform]: event.refinedContent,
                     },
                   });
+                  
+                  // Auto-save version after chat refinement
+                  const nodeAfterChat = mindmap.getNodeById ? mindmap.getNodeById(id) : null;
+                  const versionHistoryAfter = ((nodeAfterChat?.data as SocialNodeData)?.versionHistory ?? []) as ContentVersion[];
+                  
+                  if (versionHistoryAfter.length === 0) {
+                    // Create v1 as original
+                    const originalVersion: ContentVersion = {
+                      version: 1,
+                      content: event.refinedContent,
+                      contentByPlatform: { ...contentByPlatform, [platform]: event.refinedContent },
+                      createdAt: new Date().toISOString(),
+                      source: 'original',
+                    };
+                    mindmap.updateNodeData(id, {
+                      versionHistory: [originalVersion],
+                      currentVersion: 1,
+                    });
+                  } else {
+                    // Create new version
+                    const currentVer = ((nodeAfterChat?.data as SocialNodeData)?.currentVersion ?? 1) as number;
+                    const newVersion: ContentVersion = {
+                      version: currentVer + 1,
+                      content: event.refinedContent,
+                      contentByPlatform: { ...contentByPlatform, [platform]: event.refinedContent },
+                      createdAt: new Date().toISOString(),
+                      source: 'chat',
+                    };
+                    const updatedHistory = [...versionHistoryAfter, newVersion];
+                    mindmap.updateNodeData(id, {
+                      versionHistory: updatedHistory,
+                      currentVersion: newVersion.version,
+                    });
+                  }
                 } else if (event.type === 'error') {
                   throw new Error(event.error || 'Chat refinement failed.');
                 }
@@ -701,6 +783,40 @@ export default function SocialNode({
           [platform]: persistedContent,
         },
       });
+      
+      // Auto-save version after refine changes
+      const nodeAfterRefine = mindmap.getNodeById ? mindmap.getNodeById(id) : null;
+      const versionHistoryAfter = ((nodeAfterRefine?.data as SocialNodeData)?.versionHistory ?? []) as ContentVersion[];
+      
+      if (versionHistoryAfter.length === 0) {
+        // Create v1 as original
+        const originalVersion: ContentVersion = {
+          version: 1,
+          content: persistedContent,
+          contentByPlatform: { ...contentByPlatform, [platform]: persistedContent },
+          createdAt: new Date().toISOString(),
+          source: 'original',
+        };
+        mindmap.updateNodeData(id, {
+          versionHistory: [originalVersion],
+          currentVersion: 1,
+        });
+      } else {
+        // Create new version
+        const currentVer = ((nodeAfterRefine?.data as SocialNodeData)?.currentVersion ?? 1) as number;
+        const newVersion: ContentVersion = {
+          version: currentVer + 1,
+          content: persistedContent,
+          contentByPlatform: { ...contentByPlatform, [platform]: persistedContent },
+          createdAt: new Date().toISOString(),
+          source: 'refine',
+        };
+        const updatedHistory = [...versionHistoryAfter, newVersion];
+        mindmap.updateNodeData(id, {
+          versionHistory: updatedHistory,
+          currentVersion: newVersion.version,
+        });
+      }
     }
     setIsRefineMode(false);
     setRefineSentenceChanges({});
@@ -725,6 +841,49 @@ export default function SocialNode({
         [platform]: outgoingContent,
       },
     });
+  };
+
+  // Create a new version when content changes
+  const createVersion = (source: ContentVersion['source'] = 'manual') => {
+    // If this is the first version, create v1 as original
+    if (currentVersion === 1 && versionHistory.length === 0) {
+      const originalVersion: ContentVersion = {
+        version: 1,
+        content: content,
+        contentByPlatform: contentByPlatform,
+        createdAt: new Date().toISOString(),
+        source: 'original',
+      };
+      mindmap.updateNodeData(id, {
+        versionHistory: [originalVersion],
+        currentVersion: 1,
+      });
+      return;
+    }
+    
+    const newVersion: ContentVersion = {
+      version: currentVersion + 1,
+      content: content,
+      contentByPlatform: contentByPlatform,
+      createdAt: new Date().toISOString(),
+      source,
+    };
+    
+    const updatedHistory = [...versionHistory, newVersion];
+    mindmap.updateNodeData(id, {
+      versionHistory: updatedHistory,
+      currentVersion: newVersion.version,
+    });
+  };
+
+  // Revert to a specific version
+  const revertToVersion = (version: ContentVersion) => {
+    mindmap.updateNodeData(id, {
+      content: version.content,
+      contentByPlatform: version.contentByPlatform,
+      currentVersion: version.version,
+    });
+    setShowVersionDropdown(false);
   };
 
   return (
@@ -765,6 +924,33 @@ export default function SocialNode({
           <FontAwesomeIcon icon={faTrash} />
         </button>
       </div>
+
+      {/* Warning: Viewing older version - with caution symbol and high visibility */}
+      {isViewingOldVersion && versionHistory.length > 0 && (
+        <div className="nodrag mb-3 flex items-start gap-2 rounded-xl border-2 border-amber-500/80 bg-amber-50/95 px-3 py-2.5 shadow-sm">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="text-[10px]" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[11px] font-bold text-amber-900">
+              Viewing Older Version
+            </div>
+            <div className="mt-0.5 text-[10px] text-amber-800">
+              You're viewing v{currentVersion}. The latest is v{latestVersion}. {' '}
+              <button
+                type="button"
+                className="font-bold text-amber-950 underline hover:text-amber-600"
+                onClick={() => {
+                  const latest = versionHistory.find(v => v.version === latestVersion);
+                  if (latest) revertToVersion(latest);
+                }}
+              >
+                View latest
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfimationModel
         isOpen={isDeleteModalOpen}
@@ -1082,7 +1268,7 @@ export default function SocialNode({
 
       {/* Chat Mode - Messenger Style Panel */}
       {isChatMode && content && (
-        <div className="absolute left-[calc(100%+12px)] top-0 z-50 w-80 max-w-[calc(100vw-420px)] overflow-hidden rounded-2xl border border-purple-200 bg-white shadow-2">
+        <div className="absolute left-[calc(100%+12px)] top-0 z-50 w-80 overflow-hidden rounded-2xl border border-purple-200 bg-white shadow-2">
           {/* Chat Header */}
           <div className="flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-500 to-violet-500 px-4 py-3">
             <div className="flex items-center gap-2">
@@ -1122,7 +1308,7 @@ export default function SocialNode({
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3">
+            <div className="nodrag flex-1 overflow-y-auto p-3 select-text cursor-default">
               {chatMessages.length === 0 && !isChatLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-center text-[11px] text-slate-400">
@@ -1138,7 +1324,7 @@ export default function SocialNode({
                       className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[85%] rounded-2xl px-3 py-2 ${
+                        className={`max-w-[85%] rounded-2xl px-3 py-2 select-text ${
                           msg.role === 'user'
                             ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-br-md'
                             : 'bg-white border border-slate-200 text-slate-700 rounded-bl-md shadow-sm'
@@ -1206,7 +1392,7 @@ export default function SocialNode({
       )}
 
       <div
-        className={`min-h-[190px] rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-sm ${
+        className={`min-h-[190px] rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-sm select-text ${
           isGenerating ? 'relative z-50' : ''
         }`}
       >
@@ -1240,6 +1426,78 @@ export default function SocialNode({
             >
               Copy all
             </button>
+          )}
+          {/* Version indicator - shows on hover when there's content and NOT in refine/chat mode */}
+          {content && !isRefineMode && !isChatMode && (
+            <div className="nodrag absolute left-1 top-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+              {versionHistory.length > 0 ? (
+                <>
+                  <button
+                    type="button"
+                    className={`flex items-center gap-1 rounded-lg border-2 px-2.5 py-1.5 text-[10px] font-bold transition-all duration-150 ${
+                      isViewingOldVersion
+                        ? 'border-amber-500 bg-amber-100 text-amber-800 ring-2 ring-amber-300/50'
+                        : 'border-green-500/60 bg-green-100 text-green-800 ring-2 ring-green-300/50'
+                    }`}
+                    onClick={() => setShowVersionDropdown(!showVersionDropdown)}
+                  >
+                    {!isViewingOldVersion && (
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                    )}
+                    v{currentVersion}
+                    <FontAwesomeIcon icon={faChevronDown} className="text-[8px]" />
+                  </button>
+                  {/* Version dropdown */}
+                  {showVersionDropdown && (
+                    <div className="absolute left-0 top-full z-50 mt-1 w-64 rounded-xl border border-stroke bg-white p-2 shadow-lg left-[-350]">
+                      <div className="max-h-48 space-y-1 overflow-y-auto">
+                        {[...versionHistory].reverse().map((version, index) => (
+                          <button
+                            key={version.version}
+                            type="button"
+                            className={`w-full rounded-lg px-3 py-2 text-left text-xs transition-all ${
+                              version.version === currentVersion
+                                ? 'bg-primary/10 text-primary font-semibold'
+                                : 'text-body-color hover:bg-gray-50'
+                            }`}
+                            onClick={() => revertToVersion(version)}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-2">
+                                <span>v{version.version}</span>
+                                {version.version === 1 && version.source === 'original' ? (
+                                  <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[9px] font-semibold text-blue-700">
+                                    Original
+                                  </span>
+                                ) : index === 0 ? (
+                                  <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-[9px] font-semibold text-green-700">
+                                    Recent
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(version.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="text-[9px] text-gray-500 capitalize">
+                              {version.source === 'original' ? 'Original' : version.source}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className={`flex items-center gap-1 rounded-lg border-2 px-2.5 py-1.5 text-[10px] font-bold ${
+                  isViewingOldVersion
+                    ? 'border-amber-500 bg-amber-100 text-amber-800'
+                    : 'border-slate-300 bg-slate-100 text-slate-600'
+                }`}>
+                  v1
+                </div>
+              )}
+            </div>
           )}
           <div className="nodrag select-text whitespace-pre-wrap text-sm leading-relaxed text-dark">
             {isRefineMode ? (

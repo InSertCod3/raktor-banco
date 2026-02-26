@@ -841,6 +841,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     return String((node?.data as { text?: unknown } | undefined)?.text ?? "");
   }
 
+  function getNodeById(nodeId: string): Node | undefined {
+    return nodes.find((n) => n.id === nodeId);
+  }
+
   function deleteNode(nodeId: string) {
     setSelectedNodeId((current) => (current === nodeId ? null : current));
     setNodes((ns) => ns.filter((n) => n.id !== nodeId));
@@ -1194,6 +1198,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         updateNodeText,
         updateNodeData,
         getNodeText,
+        getNodeById,
         addChildNode: addChildNodeById,
         addRootNode,
         createSuggestionNode,
