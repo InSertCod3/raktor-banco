@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHouse } from "@fortawesome/free-solid-svg-icons";
@@ -43,6 +43,11 @@ import {
   type NodeType,
   type Platform,
 } from "./MindMapContext";
+import {
+  getNodeType,
+  IDEA_CONNECTIVITY_REQUIREMENTS,
+  validateConnectionTypes,
+} from "./connectionRules";
 
 type MapResponse = {
   map: {
@@ -88,6 +93,7 @@ const STRATEGY_NODE_TYPES = new Set<NodeType>([
   "hookcta",
 ]);
 type StrategyEdgeThemeType = "painpoint" | "proofpoint" | "tone" | "hookcta";
+const OUTPUT_NODE_TYPES = new Set<NodeType>(["social", "coldlead"]);
 const STRATEGY_EDGE_STROKE: Record<StrategyEdgeThemeType, string> = {
   painpoint: EDGE_COLOR_NODE_PAINPOINT,
   proofpoint: EDGE_COLOR_NODE_PROOFPOINT,
@@ -95,6 +101,7 @@ const STRATEGY_EDGE_STROKE: Record<StrategyEdgeThemeType, string> = {
   hookcta: EDGE_COLOR_NODE_HOOK_CTA,
 };
 type StrategyType = StrategyEdgeThemeType;
+type WarningSide = "left" | "right" | "both";
 
 function isStrategyNodeType(type: unknown): type is NodeType {
   return typeof type === "string" && STRATEGY_NODE_TYPES.has(type as NodeType);
@@ -213,6 +220,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
 
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [connectionWarningsByNodeId, setConnectionWarningsByNodeId] = useState<
+    Record<string, { message: string; side: WarningSide }>
+  >({});
+  const warningTimeoutsRef = useRef<Record<string, number>>({});
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingTitle, setIsSavingTitle] = useState(false);
@@ -246,6 +257,183 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   const normalizedTitle = mapTitle.trim() || "Untitled map";
   const hasUnsavedTitleChanges =
     loaded && normalizedTitle !== persistedTitleRef.current;
+
+  const nodeTypeById = useMemo(
+    () => new Map(nodes.map((node) => [node.id, getNodeType(node)])),
+    [nodes],
+  );
+  const setNodeConnectionWarning = useCallback((
+    nodeId: string | null | undefined,
+    message: string,
+    side: WarningSide,
+  ) => {
+    if (!nodeId) return;
+    setConnectionWarningsByNodeId((current) => ({ ...current, [nodeId]: { message, side } }));
+    const existingTimeout = warningTimeoutsRef.current[nodeId];
+    if (existingTimeout) {
+      window.clearTimeout(existingTimeout);
+    }
+    warningTimeoutsRef.current[nodeId] = window.setTimeout(() => {
+      setConnectionWarningsByNodeId((current) => {
+        const next = { ...current };
+        delete next[nodeId];
+        return next;
+      });
+      delete warningTimeoutsRef.current[nodeId];
+    }, 2400);
+  }, []);
+
+  const validateConnection = useCallback(
+    (conn: Pick<Connection, "source" | "target">) => {
+      const sourceType = nodeTypeById.get(conn.source ?? "") ?? null;
+      const targetType = nodeTypeById.get(conn.target ?? "") ?? null;
+      return validateConnectionTypes(sourceType, targetType);
+    },
+    [nodeTypeById],
+  );
+
+  const warningSideForType = useCallback((nodeType: NodeType | null, defaultSide: WarningSide): WarningSide => {
+    if (nodeType && STRATEGY_NODE_TYPES.has(nodeType)) return "both";
+    return defaultSide;
+  }, []);
+  const connectivityWarningsByNodeId = useMemo<
+    Record<string, { message: string; side: WarningSide }>
+  >(() => {
+    const incomingByTarget = new Map<string, string[]>();
+    edges.forEach((edge) => {
+      const incoming = incomingByTarget.get(edge.target) ?? [];
+      incoming.push(edge.source);
+      incomingByTarget.set(edge.target, incoming);
+    });
+
+    const hasUpstreamIdea = (nodeId: string): boolean => {
+      const visited = new Set<string>();
+      const queue: string[] = [nodeId];
+
+      while (queue.length > 0) {
+        const currentNodeId = queue.shift();
+        if (!currentNodeId || visited.has(currentNodeId)) continue;
+        visited.add(currentNodeId);
+
+        const currentType = nodeTypeById.get(currentNodeId);
+        if (currentType === "idea") return true;
+
+        const incoming = incomingByTarget.get(currentNodeId) ?? [];
+        incoming.forEach((sourceId) => {
+          if (!visited.has(sourceId)) queue.push(sourceId);
+        });
+      }
+
+      return false;
+    };
+
+    return nodes.reduce<Record<string, { message: string; side: WarningSide }>>((warnings, node) => {
+      const nodeType = nodeTypeById.get(node.id);
+      if (!nodeType) return warnings;
+
+      const missingIdeaWarning = IDEA_CONNECTIVITY_REQUIREMENTS[nodeType];
+      if (!missingIdeaWarning) return warnings;
+      if (nodeType === "idea") {
+        const outgoingTargetTypes = edges
+          .filter((edge) => edge.source === node.id)
+          .map((edge) => nodeTypeById.get(edge.target))
+          .filter((type): type is NodeType => Boolean(type));
+        const hasStrategyBranch = outgoingTargetTypes.some((type) =>
+          STRATEGY_NODE_TYPES.has(type),
+        );
+        const hasOutputBranch = outgoingTargetTypes.some((type) =>
+          OUTPUT_NODE_TYPES.has(type),
+        );
+
+        if (hasStrategyBranch && hasOutputBranch) return warnings;
+        const message =
+          !hasStrategyBranch && !hasOutputBranch
+            ? "Core Idea requires both: one strategy branch and one output node."
+            : !hasStrategyBranch
+              ? "Core Idea still needs at least one strategy branch node."
+              : "Core Idea still needs at least one output node (Social Draft or Prospect Outreach).";
+        warnings[node.id] = { message, side: "right" };
+        return warnings;
+      }
+      const isStrategyNode = STRATEGY_NODE_TYPES.has(nodeType);
+      const hasIdeaConnection = hasUpstreamIdea(node.id);
+
+      if (isStrategyNode) {
+        const hasOutputConnection = (() => {
+          const visited = new Set<string>();
+          const queue: string[] = [node.id];
+
+          while (queue.length > 0) {
+            const currentNodeId = queue.shift();
+            if (!currentNodeId || visited.has(currentNodeId)) continue;
+            visited.add(currentNodeId);
+
+            for (const edge of edges) {
+              if (edge.source !== currentNodeId) continue;
+              const targetType = nodeTypeById.get(edge.target);
+              if (!targetType) continue;
+              if (OUTPUT_NODE_TYPES.has(targetType)) return true;
+              if (STRATEGY_NODE_TYPES.has(targetType) && !visited.has(edge.target)) {
+                queue.push(edge.target);
+              }
+            }
+          }
+
+          return false;
+        })();
+
+        if (hasIdeaConnection && hasOutputConnection) return warnings;
+
+        const message =
+          !hasIdeaConnection && !hasOutputConnection
+            ? `${missingIdeaWarning} Keep extending this branch until it ends in Social Draft or Prospect Outreach.`
+            : !hasIdeaConnection
+              ? missingIdeaWarning
+              : "Keep going with this branch. It should finish at Social Draft or Prospect Outreach.";
+        warnings[node.id] = {
+          message,
+          side: "both",
+        };
+        return warnings;
+      }
+
+      if (hasIdeaConnection) return warnings;
+
+      warnings[node.id] = {
+        message: missingIdeaWarning,
+        side: warningSideForType(nodeType, "left"),
+      };
+      return warnings;
+    }, {});
+  }, [edges, nodeTypeById, nodes, warningSideForType]);
+  const renderedNodes = useMemo<Node[]>(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        ...(connectionWarningsByNodeId[node.id] ?? connectivityWarningsByNodeId[node.id]
+          ? {
+              data: {
+                ...(node.data as Record<string, unknown>),
+                connectionWarning:
+                  connectionWarningsByNodeId[node.id]?.message ??
+                  connectivityWarningsByNodeId[node.id]?.message ??
+                  null,
+                connectionWarningSide:
+                  connectionWarningsByNodeId[node.id]?.side ??
+                  connectivityWarningsByNodeId[node.id]?.side ??
+                  null,
+              },
+            }
+          : {
+              data: {
+                ...(node.data as Record<string, unknown>),
+                connectionWarning: null,
+                connectionWarningSide: null,
+              },
+            }),
+      }) as Node),
+    [connectionWarningsByNodeId, connectivityWarningsByNodeId, nodes],
+  );
 
   function isPositionOccupied(position: { x: number; y: number }): boolean {
     return nodes.some(
@@ -303,6 +491,15 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     }
     return { x: 0, y: 0 };
   }
+
+  useEffect(() => {
+    return () => {
+      Object.values(warningTimeoutsRef.current).forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      warningTimeoutsRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     toast(
@@ -464,6 +661,15 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   }
 
   function onConnect(conn: Connection) {
+    const validation = validateConnection(conn);
+    if (!validation.valid) {
+      const sourceType = nodeTypeById.get(conn.source ?? "") ?? null;
+      const targetType = nodeTypeById.get(conn.target ?? "") ?? null;
+      setNodeConnectionWarning(conn.source, validation.reason, warningSideForType(sourceType, "right"));
+      setNodeConnectionWarning(conn.target, validation.reason, warningSideForType(targetType, "left"));
+      toast.error(validation.reason);
+      return;
+    }
     const sourceType = nodes.find((node) => node.id === conn.source)?.type;
     const targetType = nodes.find((node) => node.id === conn.target)?.type;
     setEdges((eds) =>
@@ -499,6 +705,14 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   ): string | null {
     const parent = nodes.find((n) => n.id === parentNodeId) ?? nodes[0];
     if (!parent) return null;
+    const parentType = getNodeType(parent);
+    const childType: NodeType = type;
+    const childValidation = validateConnectionTypes(parentType, childType);
+    if (!childValidation.valid) {
+      setNodeConnectionWarning(parent.id, childValidation.reason, warningSideForType(parentType, "right"));
+      toast.error(childValidation.reason);
+      return null;
+    }
 
     const collectConnectedNodeIds = (startId: string): Set<string> => {
       const visited = new Set<string>([startId]);
@@ -521,7 +735,6 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     };
 
     const id = createId();
-    const childType: NodeType = type;
     let edgeSourceId = parent.id;
     let position = options?.positionOffset
       ? {
@@ -1034,7 +1247,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         <NodeCreationSidebar />
 
         <ReactFlow
-          nodes={nodes}
+          nodes={renderedNodes}
           edges={edges}
           style={{ backgroundColor: REACT_FLOW_PANE_BACKGROUND }}
           translateExtent={WORKSPACE_BOUNDS}
@@ -1045,6 +1258,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          isValidConnection={(conn) => validateConnection(conn).valid}
           onNodeClick={(_, node) => setSelectedNodeId(node.id)}
           nodeTypes={nodeTypes}
           edgeTypes={edgeTypes}

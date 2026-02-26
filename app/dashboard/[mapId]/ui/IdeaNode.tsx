@@ -7,6 +7,7 @@ import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import NodeAddPanel from './NodeAddPanel';
+import ConnectionHandleWarning from './ConnectionHandleWarning';
 
 export type IdeaNodeType = Node<{ text?: string }, 'idea'>;
 
@@ -20,6 +21,11 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
   const isEditingRef = useRef(false);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
+  const warningData = data as
+    | { connectionWarning?: string | null; connectionWarningSide?: 'left' | 'right' | 'both' | null }
+    | undefined;
+  const connectionWarning = warningData?.connectionWarning;
+  const connectionWarningSide = warningData?.connectionWarningSide ?? 'right';
 
   useEffect(() => {
     if (isEditingRef.current) return;
@@ -42,6 +48,7 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
       onMouseLeave={() => setIsNodeHovering(false)}
     >
       <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-emerald-500" />
+      <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
 
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>

@@ -7,6 +7,7 @@ import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
 import NodeAddPanel from './NodeAddPanel';
+import ConnectionHandleWarning from './ConnectionHandleWarning';
 
 type InsightInputNodeData = {
   text?: string;
@@ -101,6 +102,11 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
   const label = String(data?.text || `Untitled ${config.badge}`);
   const hookType = String(data?.hookType ?? HOOK_TYPE_OPTIONS[0]);
   const ctaType = String(data?.ctaType ?? CTA_TYPE_OPTIONS[0]);
+  const warningData = data as
+    | { connectionWarning?: string | null; connectionWarningSide?: 'left' | 'right' | 'both' | null }
+    | undefined;
+  const connectionWarning = warningData?.connectionWarning;
+  const connectionWarningSide = warningData?.connectionWarningSide ?? 'both';
 
   return (
     <div
@@ -111,6 +117,7 @@ export default function InsightInputNode({ id, type, data, selected }: NodeProps
     >
       <Handle type="target" position={Position.Left} className={`!h-2.5 !w-2.5 ${config.handle}`} />
       <Handle type="source" position={Position.Right} className={`!h-2.5 !w-2.5 ${config.handle}`} />
+      <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
 
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>

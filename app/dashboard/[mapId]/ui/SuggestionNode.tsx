@@ -8,6 +8,7 @@ import { Tooltip } from 'react-tooltip';
 import { LineWave } from 'react-loader-spinner';
 import ReactMarkdown from 'react-markdown';
 import { useMindMap } from './MindMapContext';
+import ConnectionHandleWarning from './ConnectionHandleWarning';
 
 type SuggestionNodeData = {
   title?: string;
@@ -67,6 +68,11 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
   const hasAutoTriggeredRef = React.useRef(false);
 
   const sourceNodeId = data?.sourceNodeId;
+  const warningData = data as
+    | { connectionWarning?: string | null; connectionWarningSide?: 'left' | 'right' | 'both' | null }
+    | undefined;
+  const connectionWarning = warningData?.connectionWarning;
+  const connectionWarningSide = warningData?.connectionWarningSide ?? 'left';
   const sourceText = sourceNodeId ? mindmap.getNodeText(sourceNodeId).trim() : '';
   const lastGeneratedSourceText = String(data?.lastGeneratedSourceText ?? '').trim();
   const hasSourceChanged = !!sourceText && sourceText !== lastGeneratedSourceText;
@@ -172,6 +178,7 @@ export default function SuggestionNode({ id, data, selected }: NodeProps<Suggest
         delayShow={80}
       />
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-violet-500" />
+      <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
       {/* <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-violet-500" /> */}
 
       <div className="mb-2 flex items-center gap-2 text-violet-700">

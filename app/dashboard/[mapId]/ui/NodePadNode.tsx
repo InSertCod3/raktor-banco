@@ -6,6 +6,7 @@ import { useMindMap } from './MindMapContext';
 import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import ConnectionHandleWarning from './ConnectionHandleWarning';
 
 type NodePadData = {
   text?: string;
@@ -20,6 +21,11 @@ export default function NodePadNode({ id, data, selected }: NodeProps<NodePadTyp
   const [draftText, setDraftText] = useState(String(data?.text ?? ''));
   const isEditingRef = useRef(false);
   const isFocused = selected || mindmap.selectedNodeId === id;
+  const warningData = data as
+    | { connectionWarning?: string | null; connectionWarningSide?: 'left' | 'right' | 'both' | null }
+    | undefined;
+  const connectionWarning = warningData?.connectionWarning;
+  const connectionWarningSide = warningData?.connectionWarningSide ?? 'both';
 
   useEffect(() => {
     if (isEditingRef.current) return;
@@ -38,6 +44,7 @@ export default function NodePadNode({ id, data, selected }: NodeProps<NodePadTyp
     >
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-emerald-500" />
       <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-emerald-500" />
+      <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
 
       <div className="relative border-b border-emerald-200 bg-gradient-to-r from-emerald-100 via-lime-50 to-emerald-100 px-4 py-3">
         <div className="absolute inset-x-0 top-0 h-1 bg-emerald-300/70" />

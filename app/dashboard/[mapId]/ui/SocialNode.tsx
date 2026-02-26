@@ -11,6 +11,7 @@ import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
+import ConnectionHandleWarning from './ConnectionHandleWarning';
 
 type SocialNodeData = {
   label?: string;
@@ -223,6 +224,11 @@ export default function SocialNode({
   const isColdLead = variant === 'coldlead';
   const titleLabel = isColdLead ? 'Prospect Outreach' : 'Social Draft';
   const generationMode = isColdLead ? 'LINKEDIN_DM_LEAD' : 'SOCIAL_POST';
+  const warningData = data as
+    | { connectionWarning?: string | null; connectionWarningSide?: 'left' | 'right' | 'both' | null }
+    | undefined;
+  const connectionWarning = warningData?.connectionWarning;
+  const connectionWarningSide = warningData?.connectionWarningSide ?? 'left';
   const headerTagClass = isColdLead ? 'text-indigo-700' : 'text-primary';
   const activeTabClass = isColdLead
     ? 'bg-gradient-to-b from-indigo-600 to-blue-600 text-white shadow-md'
@@ -654,6 +660,7 @@ export default function SocialNode({
         delayShow={80}
       />
       <Handle type="target" position={Position.Left} className={`!h-2.5 !w-2.5 ${isColdLead ? '!bg-indigo-500' : '!bg-primary'}`} />
+      <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
 
       <div className="mb-3 flex items-start justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-sm">
         <div>
