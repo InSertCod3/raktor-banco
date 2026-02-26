@@ -1138,7 +1138,7 @@ export default function SocialNode({
               {chatMessages.length === 0 && !isChatLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <p className="text-center text-[11px] text-slate-400">
-                    Tell the AI how to modify your content<br />
+                    Tell Maydove how you'd like to modify your content<br />
                     <span className="text-purple-500">e.g., "Make it more professional"</span>
                   </p>
                 </div>
