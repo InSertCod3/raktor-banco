@@ -5,7 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
 import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation, faPaperPlane, faMessage } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
@@ -207,6 +207,14 @@ export default function SocialNode({
   const [customSentenceInput, setCustomSentenceInput] = useState('');
   const [customSentenceError, setCustomSentenceError] = useState<string | null>(null);
   const nodeContainerRef = React.useRef<HTMLDivElement | null>(null);
+  
+  // Chat mode state
+  const [isChatMode, setIsChatMode] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [chatStreamedOutput, setChatStreamedOutput] = useState('');
   const closeSentenceAssistant = () => {
     setShowSuggestionsMenu(false);
     setSelectedSentenceIndex(null);
@@ -362,6 +370,94 @@ export default function SocialNode({
       }
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  // Handle chat message submission
+  const handleChatSubmit = async () => {
+    const message = chatInput.trim();
+    if (!message || !content || isChatLoading) return;
+
+    setChatError(null);
+    setChatInput('');
+    setIsChatLoading(true);
+    setChatStreamedOutput('');
+
+    // Add user message to chat
+    setChatMessages((prev) => [...prev, { role: 'user', content: message }]);
+
+    try {
+      const response = await fetch('/api/chat-refine', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mapId: mindmap.mapId,
+          nodeId: id,
+          platform,
+          userMessage: message,
+          currentContent: content,
+          generationMode,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Chat refinement failed.';
+        if (errorMessage.includes('Usage limit exceeded')) {
+          setShowUpgradeModal(true);
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let done = false;
+        while (!done) {
+          const { value, done: doneReading } = await reader.read();
+          done = doneReading;
+          if (value) {
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n').filter(Boolean);
+            for (const line of lines) {
+              try {
+                const event = JSON.parse(line);
+                if (event.type === 'delta' && event.delta) {
+                  setChatStreamedOutput((prev) => `${prev}${event.delta}`);
+                } else if (event.type === 'done' && event.refinedContent) {
+                  // Add assistant message with the refined content
+                  setChatMessages((prev) => [
+                    ...prev,
+                    { role: 'assistant', content: event.refinedContent },
+                  ]);
+                  // Update the node content
+                  mindmap.updateNodeData(id, {
+                    content: event.refinedContent,
+                    contentByPlatform: {
+                      ...contentByPlatform,
+                      [platform]: event.refinedContent,
+                    },
+                  });
+                } else if (event.type === 'error') {
+                  throw new Error(event.error || 'Chat refinement failed.');
+                }
+              } catch {
+                // Skip malformed JSON lines
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Chat refinement failed.';
+      setChatError(errorMessage);
+      // Remove the user message if there was an error
+      setChatMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setIsChatLoading(false);
+      setChatStreamedOutput('');
     }
   };
 
@@ -849,6 +945,12 @@ export default function SocialNode({
                 exitRefineModeWithoutSaving();
                 return;
               }
+              // Exit chat mode when entering refine mode
+              if (isChatMode) {
+                setIsChatMode(false);
+                setChatMessages([]);
+                setChatInput('');
+              }
               enterRefineMode();
             }}
             className={`nodrag flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
@@ -865,6 +967,42 @@ export default function SocialNode({
               className={isRefineMode ? 'text-yellow-500' : ''} 
             />
             <span className="hidden sm:inline">Refine</span>
+          </button>
+        )}
+
+        {/* Chat Toggle */}
+        {!isGenerating && (
+          <button
+            type="button"
+            disabled={!content}
+            onClick={() => {
+              if (!content) return;
+              if (isChatMode) {
+                setIsChatMode(false);
+                setChatMessages([]);
+                setChatInput('');
+                return;
+              }
+              // Exit refine mode when entering chat mode
+              if (isRefineMode) {
+                exitRefineModeWithoutSaving();
+              }
+              setIsChatMode(true);
+            }}
+            className={`nodrag flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
+              !content
+                ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                : isChatMode
+                ? 'border-purple-300 bg-purple-50 text-purple-700 shadow-sm'
+                : 'border-slate-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50'
+            }`}
+            title={!content ? 'Generate content first to chat.' : 'Chat to edit content'}
+          >
+            <FontAwesomeIcon 
+              icon={faMessage} 
+              className={isChatMode ? 'text-purple-500' : ''} 
+            />
+            <span className="hidden sm:inline">Chat</span>
           </button>
         )}
       </div>
@@ -950,6 +1088,131 @@ export default function SocialNode({
               Refine changes are only saved when you click <span className="font-semibold">Done</span>.
               {hasPendingRefineChanges ? ' You have unsaved refine edits to apply.' : ''}
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Chat Mode - Messenger Style Panel */}
+      {isChatMode && content && (
+        <div className="absolute left-[calc(100%+12px)] top-0 z-50 w-80 max-w-[calc(100vw-420px)] overflow-hidden rounded-2xl border border-purple-200 bg-white shadow-2">
+          {/* Chat Header */}
+          <div className="flex items-center justify-between border-b border-purple-100 bg-gradient-to-r from-purple-500 to-violet-500 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
+                <FontAwesomeIcon icon={faMessage} className="text-sm text-white" />
+              </div>
+              <div>
+                <div className="text-sm font-semibold text-white">AI Editor</div>
+                <div className="text-[10px] text-purple-100">Chat to edit your content</div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsChatMode(false);
+                setChatMessages([]);
+                setChatInput('');
+              }}
+              className="rounded-full bg-white/20 px-2 py-1 text-white hover:bg-white/30"
+              aria-label="Close chat"
+            >
+              <FontAwesomeIcon icon={faXmark} className="text-xs" />
+            </button>
+          </div>
+
+          {/* Chat Messages Area */}
+          <div className="flex h-96 flex-col bg-slate-50">
+            {/* Current Content Context */}
+            <div className="border-b border-purple-100 bg-purple-50/50 p-3">
+              <div className="mb-1 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-400"></span>
+                <span className="text-[10px] font-medium uppercase tracking-wider text-purple-600">Editing</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-600 line-clamp-2">
+                {content}
+              </p>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-3">
+              {chatMessages.length === 0 && !isChatLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-center text-[11px] text-slate-400">
+                    Tell the AI how to modify your content<br />
+                    <span className="text-purple-500">e.g., "Make it more professional"</span>
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {chatMessages.map((msg, idx) => (
+                    <div
+                      key={idx}
+                      className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-3 py-2 ${
+                          msg.role === 'user'
+                            ? 'bg-gradient-to-r from-purple-500 to-violet-500 text-white rounded-br-md'
+                            : 'bg-white border border-slate-200 text-slate-700 rounded-bl-md shadow-sm'
+                        }`}
+                      >
+                        <p className="text-[11px] leading-relaxed">{msg.content}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {isChatLoading && chatStreamedOutput && (
+                    <div className="flex justify-start">
+                      <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                        <p className="text-[11px] leading-relaxed text-slate-700">
+                          {chatStreamedOutput}<span className="animate-pulse">▊</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Chat Input */}
+          <div className="border-t border-slate-100 bg-white p-3">
+            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 focus-within:border-purple-400 focus-within:bg-white focus-within:ring-2 focus-within:ring-purple-100">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleChatSubmit();
+                  }
+                }}
+                placeholder="Type a message..."
+                disabled={isChatLoading || !content}
+                className="nodrag flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
+              />
+              <button
+                type="button"
+                onClick={handleChatSubmit}
+                disabled={isChatLoading || !chatInput.trim() || !content}
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-white transition-all ${
+                  isChatLoading || !chatInput.trim() || !content
+                    ? 'cursor-not-allowed bg-slate-300'
+                    : 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600'
+                }`}
+              >
+                {isChatLoading ? (
+                  <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                ) : (
+                  <FontAwesomeIcon icon={faPaperPlane} className="text-[10px]" />
+                )}
+              </button>
+            </div>
+            {chatError && (
+              <div className="mt-2 rounded-md bg-red-50 px-2 py-1.5 text-[10px] text-red-600">
+                {chatError}
+              </div>
+            )}
           </div>
         </div>
       )}
