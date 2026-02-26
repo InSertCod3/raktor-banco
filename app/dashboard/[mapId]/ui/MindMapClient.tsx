@@ -316,12 +316,16 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         visited.add(currentNodeId);
 
         const currentType = nodeTypeById.get(currentNodeId);
-        if (currentType === "idea") return true;
+        if (currentType === 'idea') return true;
 
+        // Get all incoming nodes (parents)
         const incoming = incomingByTarget.get(currentNodeId) ?? [];
-        incoming.forEach((sourceId) => {
-          if (!visited.has(sourceId)) queue.push(sourceId);
-        });
+        for (const sourceId of incoming) {
+          if (visited.has(sourceId)) continue;
+          const sourceType = nodeTypeById.get(sourceId);
+          // Add to queue - we'll check its type in the next iteration
+          queue.push(sourceId);
+        }
       }
 
       return false;
@@ -334,6 +338,32 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       const missingIdeaWarning = IDEA_CONNECTIVITY_REQUIREMENTS[nodeType];
       if (!missingIdeaWarning) return warnings;
       if (nodeType === "idea") {
+        // Traverse through the graph to find if there's a path to output nodes
+        const hasOutputPath = (() => {
+          const visited = new Set<string>();
+          const queue: string[] = [node.id];
+
+          while (queue.length > 0) {
+            const currentNodeId = queue.shift();
+            if (!currentNodeId || visited.has(currentNodeId)) continue;
+            visited.add(currentNodeId);
+
+            for (const edge of edges) {
+              if (edge.source !== currentNodeId) continue;
+              const targetType = nodeTypeById.get(edge.target);
+              if (!targetType) continue;
+              if (OUTPUT_NODE_TYPES.has(targetType)) return true;
+              // Continue traversing through strategy nodes
+              if (STRATEGY_NODE_TYPES.has(targetType) && !visited.has(edge.target)) {
+                queue.push(edge.target);
+              }
+            }
+          }
+
+          return false;
+        })();
+
+        // Check for direct strategy branch
         const outgoingTargetTypes = edges
           .filter((edge) => edge.source === node.id)
           .map((edge) => nodeTypeById.get(edge.target))
@@ -341,13 +371,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         const hasStrategyBranch = outgoingTargetTypes.some((type) =>
           STRATEGY_NODE_TYPES.has(type),
         );
-        const hasOutputBranch = outgoingTargetTypes.some((type) =>
-          OUTPUT_NODE_TYPES.has(type),
-        );
 
-        if (hasStrategyBranch && hasOutputBranch) return warnings;
+        if (hasStrategyBranch && hasOutputPath) return warnings;
         const message =
-          !hasStrategyBranch && !hasOutputBranch
+          !hasStrategyBranch && !hasOutputPath
             ? "Core Idea requires both: one strategy branch and one output node."
             : !hasStrategyBranch
               ? "Core Idea still needs at least one strategy branch node."
