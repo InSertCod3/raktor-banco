@@ -167,6 +167,17 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
               'nodrag rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:from-blue-100 hover:to-blue-50',
           },
           {
+            label: '+ Prospect Outreach',
+            description: 'Generate outreach DM copy',
+            onClick: () =>
+              mindmap.addChildNode(id, 'coldlead', {
+                label: 'Prospect Outreach',
+                platform: 'LINKEDIN',
+              }),
+            className:
+              'nodrag rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white px-3 py-2 text-left text-xs font-semibold text-indigo-700 transition hover:from-indigo-100 hover:to-indigo-50',
+          },
+          {
             label: '+ Audience Pain',
             description: 'Capture audience blockers',
             onClick: () => mindmap.addChildNode(id, 'painpoint'),
@@ -192,5 +203,6 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
     </div>
   );
 }
+
 
 

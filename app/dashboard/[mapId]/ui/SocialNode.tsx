@@ -14,16 +14,17 @@ import ReactMarkdown from 'react-markdown';
 
 type SocialNodeData = {
   label?: string;
-  type: 'social';
+  type: 'social' | 'coldlead';
   platform?: Platform;
   content?: string;
   contentByPlatform?: Partial<Record<Platform, string>>;
   messagingLengthByPlatform?: Partial<Record<Platform, MessagingLengthOption | 'medium' | 'long'>>;
 };
 
-type SocialNodeType = Node<SocialNodeData, 'social'>;
+type SocialNodeType = Node<SocialNodeData, 'social' | 'coldlead'>;
 type MessagingLengthOption = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
 type SentenceChangeKind = 'suggestion' | 'custom' | 'deleted';
+type SocialNodeVariant = 'social' | 'coldlead';
 
 const MESSAGING_LENGTH_OPTIONS: { value: MessagingLengthOption; label: string }[] = [
   { value: 'shortest', label: 'Shortest' },
@@ -171,7 +172,12 @@ function HighlightableContent({
   );
 }
 
-export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeType>) {
+export default function SocialNode({
+  id,
+  data,
+  selected,
+  variant = 'social',
+}: NodeProps<SocialNodeType> & { variant?: SocialNodeVariant }) {
   const mindmap = useMindMap();
   const tooltipClassName =
     'z-20 rounded-xl border border-slate-700/70 bg-slate-900/95 px-3 py-2 text-xs font-medium text-slate-100 shadow-xl backdrop-blur';
@@ -214,6 +220,16 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
   };
 
   const isFocused = selected || mindmap.selectedNodeId === id;
+  const isColdLead = variant === 'coldlead';
+  const titleLabel = isColdLead ? 'Prospect Outreach' : 'Social Draft';
+  const generationMode = isColdLead ? 'LINKEDIN_DM_LEAD' : 'SOCIAL_POST';
+  const headerTagClass = isColdLead ? 'text-indigo-700' : 'text-primary';
+  const activeTabClass = isColdLead
+    ? 'bg-gradient-to-b from-indigo-600 to-blue-600 text-white shadow-md'
+    : 'bg-gradient-to-b from-primary to-blue-600 text-white shadow-md';
+  const generateButtonClass = isColdLead
+    ? 'nodrag flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:from-indigo-700 hover:to-blue-700 disabled:opacity-60'
+    : 'nodrag flex-1 rounded-xl bg-gradient-to-r from-primary to-blue-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-dark disabled:opacity-60';
   const contentByPlatform = (data?.contentByPlatform ?? {}) as Partial<Record<Platform, string>>;
   const fallbackContent = String(data?.content ?? '');
   const hasAnyPlatformContent = (['LINKEDIN', 'FACEBOOK', 'INSTAGRAM'] as Platform[]).some((key) =>
@@ -329,7 +345,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         {
           onDelta: (delta) => setStreamedOutput((current) => `${current}${delta}`),
         },
-        { socialNodeId: id, keptSentences: keptSentence || undefined }
+        { outputNodeId: id, keptSentences: keptSentence || undefined, generationMode }
       );
       setStreamedOutput('');
     } catch (e) {
@@ -402,6 +418,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
           mapId: mindmap.mapId,
           nodeId: id,
           platform,
+          generationMode,
           sentence: selectedSentence,
           fullPostText: refineDraftContent,
         }),
@@ -615,7 +632,9 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         'relative w-[380px] overflow-visible rounded-3xl border p-4 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-all duration-200',
         isGenerating ? 'select-none' : '',
         isFocused
-          ? 'border-primary/50 bg-gradient-to-br from-blue-50 via-white to-cyan-50 ring-2 ring-primary/20'
+          ? isColdLead
+            ? 'border-indigo-400/60 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 ring-2 ring-indigo-300/30'
+            : 'border-primary/50 bg-gradient-to-br from-blue-50 via-white to-cyan-50 ring-2 ring-primary/20'
           : 'border-stroke/70 bg-gradient-to-br from-white via-white to-slate-50',
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
@@ -634,11 +653,11 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         opacity={1}
         delayShow={80}
       />
-      <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-primary" />
+      <Handle type="target" position={Position.Left} className={`!h-2.5 !w-2.5 ${isColdLead ? '!bg-indigo-500' : '!bg-primary'}`} />
 
       <div className="mb-3 flex items-start justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-sm">
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">Social Draft</div>
+          <div className={`text-[10px] font-semibold uppercase tracking-[0.1em] ${headerTagClass}`}>{titleLabel}</div>
           <div className="mt-0.5 text-sm font-semibold text-dark">{platformLabel(platform)}</div>
         </div>
         <button
@@ -654,8 +673,8 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDelete}
-        title="Delete Social Draft"
-        itemName={data?.label || 'Social Draft'}
+        title={`Delete ${titleLabel}`}
+        itemName={data?.label || titleLabel}
         phraseEnforce={false}
       />
       <ConfimationModel
@@ -725,7 +744,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
             className={[
               'nodrag flex-1 rounded-xl px-2.5 py-1.5 text-xs font-semibold transition-all',
               platform === item
-                ? 'bg-gradient-to-b from-primary to-blue-600 text-white shadow-md'
+                ? activeTabClass
                 : 'text-body-color hover:bg-slate-50 hover:text-dark',
             ].join(' ')}
           >
@@ -759,9 +778,9 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
                 },
               });
             }}
-            className="nodrag h-2 w-full appearance-none rounded-lg bg-slate-200 outline-none focus:outline-none disabled:opacity-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:active:scale-95"
-            aria-label={`Messaging length for ${platformLabel(platform)}`}
-          />
+          className={`nodrag h-2 w-full appearance-none rounded-lg bg-slate-200 outline-none focus:outline-none disabled:opacity-50 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full ${isColdLead ? '[&::-webkit-slider-thumb]:bg-indigo-600' : '[&::-webkit-slider-thumb]:bg-primary'} [&::-webkit-slider-thumb]:shadow-sm [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:hover:scale-110 [&::-webkit-slider-thumb]:active:scale-95`}
+          aria-label={`Messaging length for ${platformLabel(platform)}`}
+        />
         </div>
         <div className="grid grid-cols-5 gap-1">
           {MESSAGING_LENGTH_OPTIONS.map((option, index) => (
@@ -779,7 +798,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
               className={[
                 'rounded-lg py-1.5 text-[10px] font-semibold transition-all',
                 index === safeLengthIndex
-                  ? 'bg-gradient-to-b from-primary to-blue-600 text-white shadow-md'
+                  ? activeTabClass
                   : 'bg-slate-50 text-body-color hover:bg-slate-100',
               ].join(' ')}
             >
@@ -792,7 +811,7 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
       <div className="mb-3 flex gap-2">
         <button
           type="button"
-          className="nodrag flex-1 rounded-xl bg-gradient-to-r from-primary to-blue-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-dark disabled:opacity-60"
+          className={generateButtonClass}
           onClick={handleGenerate}
           disabled={isGenerating}
         >
@@ -813,10 +832,12 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
         </button>
 
         {/* Refine Toggle */}
-        {content && !isGenerating && (
+        {!isGenerating && (
           <button
             type="button"
+            disabled={!content}
             onClick={() => {
+              if (!content) return;
               if (isRefineMode) {
                 exitRefineModeWithoutSaving();
                 return;
@@ -824,10 +845,13 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
               enterRefineMode();
             }}
             className={`nodrag flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
-              isRefineMode 
+              !content
+                ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
+                : isRefineMode 
                 ? 'border-amber-300 bg-amber-50 text-amber-700 shadow-sm' 
                 : 'border-slate-200 bg-white text-gray-600 hover:border-amber-300 hover:bg-amber-50'
             }`}
+            title={!content ? 'Generate content first to refine.' : 'Refine content'}
           >
             <FontAwesomeIcon 
               icon={faHighlighter} 
@@ -1214,5 +1238,6 @@ export default function SocialNode({ id, data, selected }: NodeProps<SocialNodeT
     </div>
   );
 }
+
 
 

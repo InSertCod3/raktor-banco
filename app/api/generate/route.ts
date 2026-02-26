@@ -4,16 +4,18 @@ import { PlatformType, Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
-import { buildPlatformPrompt } from '@/app/lib/prompts';
+import { buildLinkedInDmLeadPrompt, buildPlatformPrompt } from '@/app/lib/prompts';
 import { generateId } from '@/app/lib/utils';
 import { checkUsageLimit } from '@/app/lib/usage';
 
 const GenerateSchema = z.object({
   mapId: z.string().min(1),
   nodeId: z.string().min(1),
-  socialNodeId: z.string().min(1).optional(),
+  outputNodeId: z.string().min(1).optional(),
+  socialNodeId: z.string().min(1).optional(), // backward compatible alias
   platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
   keptSentences: z.string().optional(),
+  generationMode: z.enum(['SOCIAL_POST', 'LINKEDIN_DM_LEAD']).optional(),
 });
 
 type MessagingLength = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
@@ -89,8 +91,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { mapId, nodeId, socialNodeId: requestedSocialNodeId, keptSentences } = parsed.data;
-  const platform = parsed.data.platform as PlatformType | 'INSTAGRAM';
+  const {
+    mapId,
+    nodeId,
+    outputNodeId: requestedOutputNodeId,
+    socialNodeId: legacySocialNodeId,
+    keptSentences,
+  } = parsed.data;
+  const requestedSocialNodeId = requestedOutputNodeId ?? legacySocialNodeId;
+  let platform = parsed.data.platform as PlatformType | 'INSTAGRAM';
 
   const requestedNode = await prisma.node.findFirst({
     where: { id: nodeId, mapId, map: { userId } },
@@ -99,9 +108,19 @@ export async function POST(req: Request) {
 
   if (!requestedNode) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  const requestedType = (requestedNode.type ?? '').toLowerCase();
+  const outputNodeType =
+    requestedType === 'coldlead' || parsed.data.generationMode === 'LINKEDIN_DM_LEAD'
+      ? 'coldlead'
+      : 'social';
+  const isColdLeadGeneration = outputNodeType === 'coldlead';
+  if (isColdLeadGeneration) {
+    platform = PlatformType.LINKEDIN;
+  }
+
   let ideaNode = requestedNode;
   let targetSocialNodeId = requestedSocialNodeId;
-  const requestedIsSocial = (requestedNode.type ?? '').toLowerCase() === 'social';
+  const requestedIsOutputNode = requestedType === 'social' || requestedType === 'coldlead';
   const mapEdges = await prisma.edge.findMany({
     where: { mapId },
     select: { id: true, source: true, target: true, type: true, data: true },
@@ -127,11 +146,11 @@ export async function POST(req: Request) {
     return visited;
   };
 
-  if (requestedIsSocial) {
+  if (requestedIsOutputNode) {
     targetSocialNodeId = requestedSocialNodeId ?? requestedNode.id;
     const connectedIds = collectConnectedIds(requestedNode.id);
     if (connectedIds.size <= 1) {
-      return NextResponse.json({ error: 'Social node is not connected to an idea node.' }, { status: 400 });
+      return NextResponse.json({ error: 'Output node is not connected to an idea node.' }, { status: 400 });
     }
 
     const connectedNodes = await prisma.node.findMany({
@@ -146,7 +165,7 @@ export async function POST(req: Request) {
     const connectedIdea = connectedNodes.find((node) => (node.type ?? '').toLowerCase() === 'idea');
 
     if (!connectedIdea) {
-      return NextResponse.json({ error: 'Social node must connect to an idea node.' }, { status: 400 });
+      return NextResponse.json({ error: 'Output node must connect to an idea node.' }, { status: 400 });
     }
 
     ideaNode = connectedIdea;
@@ -169,8 +188,8 @@ export async function POST(req: Request) {
 
   if (targetSocialNodeId) {
     const targetNode = nodeById.get(targetSocialNodeId);
-    if (!targetNode || (targetNode.type ?? '').toLowerCase() !== 'social') {
-      return NextResponse.json({ error: 'Requested social node is invalid for this idea.' }, { status: 400 });
+    if (!targetNode || (targetNode.type ?? '').toLowerCase() !== outputNodeType) {
+      return NextResponse.json({ error: 'Requested output node is invalid for this idea.' }, { status: 400 });
     }
   }
 
@@ -183,9 +202,10 @@ export async function POST(req: Request) {
   }
 
   const temperature = 0.2;
-  const nonSocialConnectedNodes = connectedNodes.filter(
-    (connected) => (connected.type ?? '').toLowerCase() !== 'social'
-  );
+  const nonSocialConnectedNodes = connectedNodes.filter((connected) => {
+    const type = (connected.type ?? '').toLowerCase();
+    return type !== 'social' && type !== 'coldlead';
+  });
   const painPointTexts = nonSocialConnectedNodes
     .filter((connected) => (connected.type ?? '').toLowerCase() === 'painpoint')
     .flatMap((connected) => collectTextValues(connected.data))
@@ -213,7 +233,7 @@ export async function POST(req: Request) {
     .flatMap((connected) => collectTextValues(connected.data))
     .filter(Boolean);
 
-  const prompt = buildPlatformPrompt({
+  const promptArgs = {
     platform,
     ideaText,
     contextTexts,
@@ -222,7 +242,11 @@ export async function POST(req: Request) {
     toneValues,
     messagingLength: getMessagingLengthFromSocialData(requestedNode.data, platform),
     keptSentences: keptSentences,
-  });
+  } as const;
+  const prompt =
+    isColdLeadGeneration
+      ? buildLinkedInDmLeadPrompt(promptArgs)
+      : buildPlatformPrompt(promptArgs);
 
   const last = await prisma.generatedContent.findFirst({
     where: { nodeId: ideaNode.id, platform: platform as PlatformType },
@@ -232,9 +256,9 @@ export async function POST(req: Request) {
 
   let socialNode = (targetSocialNodeId ? nodeById.get(targetSocialNodeId) : null) ?? ideaEdges
     .map((edge) => nodeById.get(edge.source === ideaNode.id ? edge.target : edge.source))
-    .find((candidate) => (candidate?.type ?? '').toLowerCase() === 'social');
+    .find((candidate) => (candidate?.type ?? '').toLowerCase() === outputNodeType);
 
-  if (socialNode && (socialNode.type ?? '').toLowerCase() !== 'social') {
+  if (socialNode && (socialNode.type ?? '').toLowerCase() !== outputNodeType) {
     socialNode = undefined;
   }
 
@@ -249,7 +273,13 @@ export async function POST(req: Request) {
   const socialNodeId = socialNode?.id ?? targetSocialNodeId ?? generateId(24);
   const socialEdgeId = existingSocialEdge?.id ?? generateId(24);
   const socialLabel =
-    platform === 'LINKEDIN' ? 'LinkedIn' : platform === 'FACEBOOK' ? 'Facebook' : 'Instagram';
+    isColdLeadGeneration
+      ? 'Prospect Outreach'
+      : platform === 'LINKEDIN'
+      ? 'LinkedIn'
+      : platform === 'FACEBOOK'
+      ? 'Facebook'
+      : 'Instagram';
   const socialDataBase = isRecord(socialNode?.data)
     ? socialNode.data
     : isRecord(requestedNode.data)
@@ -259,7 +289,7 @@ export async function POST(req: Request) {
   const socialDataWithDefaults = {
     ...socialDataBase,
     label: socialLabel,
-    type: 'social',
+    type: outputNodeType,
     platform,
     contentByPlatform: existingContentByPlatform,
   };
@@ -267,7 +297,7 @@ export async function POST(req: Request) {
     where: { id: socialNodeId },
     update: {
       mapId,
-      type: 'social',
+      type: outputNodeType,
       data: {
         ...socialDataWithDefaults,
         content: '',
@@ -280,7 +310,7 @@ export async function POST(req: Request) {
     create: {
       id: socialNodeId,
       mapId,
-      type: 'social',
+      type: outputNodeType,
       positionX: ideaNode.positionX + 280,
       positionY: ideaNode.positionY + 60,
       data: {
@@ -295,9 +325,9 @@ export async function POST(req: Request) {
     select: { id: true, type: true, positionX: true, positionY: true, data: true },
   });
 
-  // When generating from an existing social node, do not force-create a direct edge to idea.
+  // When generating from an existing output node, do not force-create a direct edge to idea.
   let savedSocialEdge = existingSocialEdge ?? null;
-  if (!requestedIsSocial) {
+  if (!requestedIsOutputNode) {
     savedSocialEdge = await prisma.edge.upsert({
       where: { id: socialEdgeId },
       update: {
@@ -448,3 +478,4 @@ export async function POST(req: Request) {
     },
   });
 }
+

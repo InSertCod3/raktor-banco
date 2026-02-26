@@ -1,6 +1,6 @@
 import { PlatformType } from '@prisma/client';
 
-export function buildPlatformPrompt(args: {
+type PromptArgs = {
   platform: PlatformType | 'INSTAGRAM';
   ideaText: string;
   contextTexts?: string[];
@@ -9,7 +9,9 @@ export function buildPlatformPrompt(args: {
   toneValues?: string[];
   messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
   keptSentences?: string;
-}): { system: string; user: string } {
+};
+
+function normalizePromptArgs(args: PromptArgs) {
   const idea = args.ideaText.trim();
   const contextTexts = (args.contextTexts ?? [])
     .map((text) => text.trim())
@@ -44,10 +46,42 @@ export function buildPlatformPrompt(args: {
   const contextBlock = contextTexts.length
     ? ['', 'Context from connected idea nodes:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
     : [];
-
   const keptSentencesBlock = args.keptSentences?.trim()
     ? ['', 'Keep these sentences from previous generation:', args.keptSentences.trim()]
     : [];
+
+  return {
+    idea,
+    messagingLength,
+    messagingLengthLabel,
+    toneBlock,
+    painPointBlock,
+    proofPointBlock,
+    contextBlock,
+    keptSentencesBlock,
+  };
+}
+
+export function buildPlatformPrompt(args: {
+  platform: PlatformType | 'INSTAGRAM';
+  ideaText: string;
+  contextTexts?: string[];
+  painPointTexts?: string[];
+  proofPointTexts?: string[];
+  toneValues?: string[];
+  messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
+  keptSentences?: string;
+}): { system: string; user: string } {
+  const {
+    idea,
+    messagingLength,
+    messagingLengthLabel,
+    toneBlock,
+    painPointBlock,
+    proofPointBlock,
+    contextBlock,
+    keptSentencesBlock,
+  } = normalizePromptArgs(args);
 
   const system = [
     'You are an assistant that writes short, platform-aware social posts.',
@@ -157,6 +191,60 @@ export function buildPlatformPrompt(args: {
   return { system, user };
 }
 
+export function buildLinkedInDmLeadPrompt(args: PromptArgs): { system: string; user: string } {
+  const {
+    idea,
+    messagingLength,
+    messagingLengthLabel,
+    toneBlock,
+    painPointBlock,
+    proofPointBlock,
+    contextBlock,
+    keptSentencesBlock,
+  } = normalizePromptArgs(args);
+
+  const dmLengthConstraint =
+    messagingLength === 'shortest'
+      ? '- 1-2 short lines'
+      : messagingLength === 'shorter'
+      ? '- 2-3 short lines'
+      : messagingLength === 'longer'
+      ? '- 4-6 concise lines'
+      : messagingLength === 'longest'
+      ? '- 6-8 concise lines'
+      : '- 3-5 concise lines';
+
+  const system = [
+    'You write lead-generation LinkedIn DMs.',
+    'Output only one DM message, plain text, no markdown.',
+    'The result must be copy-paste ready as-is.',
+    'Keep it conversational, specific, and human.',
+    'Do not sound spammy, pushy, or generic.',
+  ].join('\n');
+
+  const user = [
+    'Write a LinkedIn DM for lead generation based on this idea:',
+    `"${idea}"`,
+    ...toneBlock,
+    ...painPointBlock,
+    ...proofPointBlock,
+    ...contextBlock,
+    ...keptSentencesBlock,
+    '',
+    `Messaging length preference: ${messagingLengthLabel}`,
+    '',
+    'Constraints:',
+    dmLengthConstraint,
+    '- Open with personalized relevance, not a hard pitch',
+    '- Mention one concrete value or outcome',
+    '- Include one light CTA (e.g., ask if they want a quick breakdown)',
+    '- No emojis, no hashtags, no formal letter formatting',
+    '- No placeholders like [Name], [Company], or angle brackets',
+  ].join('\n');
+
+  return { system, user };
+}
+
 export function buildSuggestionPrompt(args: {
   sourceText: string;
   contextTexts?: string[];
@@ -189,6 +277,7 @@ export function buildSuggestionPrompt(args: {
 
 export function buildSentenceReplacementPrompt(args: {
   platform: PlatformType | 'INSTAGRAM';
+  generationMode?: 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
   sentence: string;
   fullPostText: string;
 }): { system: string; user: string } {
@@ -200,10 +289,14 @@ export function buildSentenceReplacementPrompt(args: {
       : 'Instagram';
 
   const system = [
-    'You rewrite one sentence for a social post.',
+    args.generationMode === 'LINKEDIN_DM_LEAD'
+      ? 'You rewrite one sentence for a LinkedIn lead-generation DM.'
+      : 'You rewrite one sentence for a social post.',
     'Return strict JSON only with this shape: {"suggestions":["...", "...", "..."]}',
     'Each suggestion must be exactly one sentence.',
-    'Keep meaning aligned with the original sentence and fit the platform tone.',
+    args.generationMode === 'LINKEDIN_DM_LEAD'
+      ? 'Keep meaning aligned and keep outreach conversational, specific, and non-salesy.'
+      : 'Keep meaning aligned with the original sentence and fit the platform tone.',
     'Do not add markdown or extra keys.',
   ].join('\n');
 
@@ -218,11 +311,11 @@ export function buildSentenceReplacementPrompt(args: {
     '',
     'Task:',
     '- Generate 3 replacement sentence options.',
-    '- Keep them concise and scannable.',
+    args.generationMode === 'LINKEDIN_DM_LEAD'
+      ? '- Keep them concise and direct for DM outreach.'
+      : '- Keep them concise and scannable.',
     '- Do not repeat the exact original sentence.',
   ].join('\n');
 
   return { system, user };
 }
-
-

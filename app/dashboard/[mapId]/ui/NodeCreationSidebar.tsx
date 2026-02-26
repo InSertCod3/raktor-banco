@@ -35,6 +35,7 @@ export default function NodeCreationSidebar() {
   };
 
   const coreTools: Array<{
+    id: string;
     type: NodeType;
     title: string;
     subtitle: string;
@@ -44,6 +45,7 @@ export default function NodeCreationSidebar() {
     icon: any;
   }> = [
     {
+      id: "core-idea",
       type: "idea",
       title: "Core Idea",
       subtitle: "Set the main message",
@@ -53,6 +55,7 @@ export default function NodeCreationSidebar() {
       icon: faLightbulb,
     },
     {
+      id: "social-draft",
       type: "social",
       title: "Social Draft",
       subtitle: "Generate platform-ready copy",
@@ -62,6 +65,17 @@ export default function NodeCreationSidebar() {
       icon: faSignsPost,
     },
     {
+      id: "cold-leads",
+      type: "coldlead",
+      title: "Prospect Outreach",
+      subtitle: "Create platform ready direct message outreach",
+      tooltip: "Create a standalone Prospect Outreach node to generate direct, ready-to-send LinkedIn outreach messages.",
+      cardClass: "border-indigo-200 from-indigo-50 to-white hover:from-indigo-100",
+      iconWrapClass: "bg-indigo-200/85 text-indigo-700 group-hover:rotate-3",
+      icon: faSignsPost,
+    },
+    {
+      id: "notes",
       type: "notepad",
       title: "Notes",
       subtitle: "Capture context and reminders",
@@ -186,7 +200,7 @@ export default function NodeCreationSidebar() {
           <div className="mt-2 space-y-2">
             {coreTools.map((tool) => (
               <button
-                key={tool.type}
+                key={tool.id}
                 data-tooltip-id="side-bar-tooltip"
                 data-tooltip-content={tool.tooltip}
                 className={[

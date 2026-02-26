@@ -4,6 +4,7 @@ import type { Edge, Node } from '@xyflow/react';
 import React from 'react';
 
 export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
+export type GenerationMode = 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
 
 export type Generation = {
   id: string;
@@ -13,7 +14,7 @@ export type Generation = {
   model: string;
 };
 
-export type NodeType = 'idea' | 'social' | 'notepad' | 'suggestion' | 'painpoint' | 'proofpoint' | 'tone' | 'hookcta';
+export type NodeType = 'idea' | 'social' | 'coldlead' | 'notepad' | 'suggestion' | 'painpoint' | 'proofpoint' | 'tone' | 'hookcta';
 
 export type MindMapContextValue = {
   mapId: string;
@@ -41,8 +42,10 @@ export type MindMapContextValue = {
       onDelta?: (delta: string) => void;
     },
     options?: {
+      outputNodeId?: string;
       socialNodeId?: string;
       keptSentences?: string;
+      generationMode?: GenerationMode;
     }
   ) => Promise<{
     generation: Generation;

@@ -24,6 +24,7 @@ import IdeaNode from "./IdeaNode";
 import InsightInputNode from "./InsightInputNode";
 import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
+import ColdLeadNode from "./ColdLeadNode";
 import SuggestionNode from "./SuggestionNode";
 import ToneNode from "./ToneNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
@@ -37,6 +38,7 @@ import {
 } from "./constant/colors";
 import {
   MindMapContext,
+  type GenerationMode,
   type Generation,
   type NodeType,
   type Platform,
@@ -154,7 +156,22 @@ function createId(): string {
 }
 
 function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<string, unknown> {
-  if (type === "social") return { label: "LinkedIn", type: "social", platform: "LINKEDIN", content: "", ...data };
+  if (type === "social")
+    return {
+      label: "LinkedIn",
+      type: "social",
+      platform: "LINKEDIN",
+      content: "",
+      ...data,
+    };
+  if (type === "coldlead")
+    return {
+      label: "Prospect Outreach",
+      type: "coldlead",
+      platform: "LINKEDIN",
+      content: "",
+      ...data,
+    };
   if (type === "notepad") return { text: "", ...data };
   if (type === "suggestion") return { title: "Generation Suggestion", text: "Use this note to generate content.", ...data };
   if (type === "painpoint") return { text: "", ...data };
@@ -214,6 +231,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       hookcta: InsightInputNode,
       tone: ToneNode,
       social: SocialNode,
+      coldlead: ColdLeadNode,
       notepad: NodePadNode,
       suggestion: SuggestionNode,
     }),
@@ -512,8 +530,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         }
       : getViewportCenterPosition();
 
-    // Social nodes should attach to the selected source node.
-    if (childType === "social" && !options?.positionOffset) {
+    // Output nodes should attach to the selected source node.
+    if ((childType === "social" || childType === "coldlead") && !options?.positionOffset) {
       edgeSourceId = parent.id;
       position = getViewportCenterPosition();
     }
@@ -653,8 +671,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       onDelta?: (delta: string) => void;
     },
     options?: {
+      outputNodeId?: string;
       socialNodeId?: string;
       keptSentences?: string;
+      generationMode?: GenerationMode;
     },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     setActiveGenerations((current) => current + 1);
@@ -665,9 +685,11 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         body: JSON.stringify({
           mapId,
           nodeId,
+          outputNodeId: options?.outputNodeId,
           platform,
           socialNodeId: options?.socialNodeId,
           keptSentences: options?.keptSentences,
+          generationMode: options?.generationMode,
         }),
       });
 
@@ -1036,3 +1058,4 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     </MindMapContext.Provider>
   );
 }
+

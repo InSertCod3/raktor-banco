@@ -143,6 +143,17 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
               className:
                 'nodrag rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white px-3 py-2 text-left text-xs font-semibold text-blue-700 transition hover:from-blue-100 hover:to-blue-50',
             },
+            {
+              label: '+ Prospect Outreach',
+              description: 'Generate lead-gen DM outreach copy',
+              onClick: () =>
+                mindmap.addChildNode(id, 'coldlead', {
+                  label: 'Prospect Outreach',
+                  platform: 'LINKEDIN',
+                }),
+              className:
+                'nodrag rounded-xl border border-indigo-200 bg-gradient-to-br from-indigo-50 to-white px-3 py-2 text-left text-xs font-semibold text-indigo-700 transition hover:from-indigo-100 hover:to-indigo-50',
+            },
           ]}
         />
       </div>
@@ -150,5 +161,6 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
     </div>
   );
 }
+
 
 

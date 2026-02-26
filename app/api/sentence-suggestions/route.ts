@@ -11,6 +11,7 @@ const SentenceSuggestionsSchema = z.object({
   mapId: z.string().min(1),
   nodeId: z.string().min(1),
   platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
+  generationMode: z.enum(['SOCIAL_POST', 'LINKEDIN_DM_LEAD']).optional(),
   sentence: z.string().min(1).max(500),
   fullPostText: z.string().min(1).max(6000),
 });
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { mapId, nodeId, platform, sentence, fullPostText } = parsed.data;
+  const { mapId, nodeId, platform, generationMode, sentence, fullPostText } = parsed.data;
 
   const node = await prisma.node.findFirst({
     where: { id: nodeId, mapId, map: { userId } },
@@ -112,6 +113,7 @@ export async function POST(req: Request) {
 
   const prompt = buildSentenceReplacementPrompt({
     platform: platform as PlatformType | 'INSTAGRAM',
+    generationMode,
     sentence,
     fullPostText,
   });
