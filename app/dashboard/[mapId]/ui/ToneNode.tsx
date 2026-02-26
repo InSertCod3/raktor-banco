@@ -16,7 +16,10 @@ type ToneOption =
   | 'Curious'
   | 'Friendly'
   | 'Optimistic'
-  | 'Informal';
+  | 'Informal'
+  | 'Educational'
+  | 'Professional'
+  | 'Flirty';
 
 type ToneNodeData = {
   tone?: ToneOption;
@@ -33,6 +36,9 @@ const TONE_OPTIONS: ToneOption[] = [
   'Friendly',
   'Optimistic',
   'Informal',
+  'Educational',
+  'Professional',
+  'Flirty',
 ];
 
 export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>) {
