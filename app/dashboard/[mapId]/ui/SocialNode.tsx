@@ -732,7 +732,7 @@ export default function SocialNode({
       ref={nodeContainerRef}
       className={[
         'relative w-[380px] overflow-visible rounded-3xl border p-4 shadow-[0_18px_42px_-26px_rgba(15,23,42,0.45)] backdrop-blur-sm transition-all duration-200',
-        isGenerating ? 'select-none' : '',
+        isGenerating || isChatLoading ? 'select-none' : '',
         isFocused
           ? isColdLead
             ? 'border-indigo-400/60 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 ring-2 ring-indigo-300/30'
@@ -741,13 +741,7 @@ export default function SocialNode({
       ].join(' ')}
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
     >
-      {isGenerating ? (
-        <div
-          className="absolute inset-0 z-40 rounded-3xl bg-white/45 backdrop-blur-[2px] cursor-wait"
-          onMouseDown={(e) => e.stopPropagation()}
-          aria-hidden
-        />
-      ) : null}
+      {/* Generation loading overlay - controls are blurred individually, content remains clear */}
       <Tooltip
         id={`social-copy-tooltip-${id}`}
         place="bottom"
@@ -758,7 +752,7 @@ export default function SocialNode({
       <Handle type="target" position={Position.Left} className={`!h-2.5 !w-2.5 ${isColdLead ? '!bg-indigo-500' : '!bg-primary'}`} />
       <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
 
-      <div className="mb-3 flex items-start justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-sm">
+      <div className={`mb-3 flex items-start justify-between gap-2 rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-2 shadow-sm ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
         <div>
           <div className={`text-[10px] font-semibold uppercase tracking-[0.1em] ${headerTagClass}`}>{titleLabel}</div>
           <div className="mt-0.5 text-sm font-semibold text-dark">{platformLabel(platform)}</div>
@@ -838,7 +832,7 @@ export default function SocialNode({
         </div>
       )}
 
-      <div className="mb-3 flex items-center gap-1 rounded-2xl border border-slate-200/80 bg-white/90 p-1.5 shadow-sm">
+      <div className={`mb-3 flex items-center gap-1 rounded-2xl border border-slate-200/80 bg-white/90 p-1.5 shadow-sm ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
         {(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM'] as Platform[]).map((item) => (
           <button
             key={item}
@@ -856,7 +850,7 @@ export default function SocialNode({
         ))}
       </div>
 
-      <div className="mb-3 rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm">
+      <div className={`mb-3 rounded-2xl border border-slate-200/80 bg-white/90 p-3 shadow-sm ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
         <div className="mb-3 flex items-center justify-between">
           <div className="text-[10px] font-semibold uppercase tracking-[0.1em] text-body-color">Messaging Length</div>
           <div className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-dark">
@@ -911,22 +905,16 @@ export default function SocialNode({
         </div>
       </div>
 
-      <div className="mb-3 flex gap-2">
+      <div className={`mb-3 flex gap-2 ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
         <button
           type="button"
           className={generateButtonClass}
           onClick={handleGenerate}
-          disabled={isGenerating}
+          disabled={isGenerating || isChatLoading}
         >
           {isGenerating ? (
             <span className="inline-flex items-center gap-2">
-              <ColorRing
-                visible
-                height={18}
-                width={18}
-                ariaLabel="social-generation-loading"
-                colors={['#ffffff', '#dbeafe', '#bfdbfe', '#93c5fd', '#ffffff']}
-              />
+              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
               Generating...
             </span>
           ) : (
@@ -935,10 +923,10 @@ export default function SocialNode({
         </button>
 
         {/* Refine Toggle */}
-        {!isGenerating && (
+        {!isGenerating && !isChatLoading && (
           <button
             type="button"
-            disabled={!content}
+            disabled={!content || isChatLoading}
             onClick={() => {
               if (!content) return;
               if (isRefineMode) {
@@ -971,10 +959,10 @@ export default function SocialNode({
         )}
 
         {/* Chat Toggle */}
-        {!isGenerating && (
+        {!isGenerating && !isChatLoading && (
           <button
             type="button"
-            disabled={!content}
+            disabled={!content || isChatLoading}
             onClick={() => {
               if (!content) return;
               if (isChatMode) {
@@ -1188,15 +1176,15 @@ export default function SocialNode({
                   }
                 }}
                 placeholder="Type a message..."
-                disabled={isChatLoading || !content}
+                disabled={isChatLoading || isGenerating || !content}
                 className="nodrag flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400 disabled:cursor-not-allowed"
               />
               <button
                 type="button"
                 onClick={handleChatSubmit}
-                disabled={isChatLoading || !chatInput.trim() || !content}
+                disabled={isChatLoading || isGenerating || !chatInput.trim() || !content}
                 className={`flex h-7 w-7 items-center justify-center rounded-full text-white transition-all ${
-                  isChatLoading || !chatInput.trim() || !content
+                  isChatLoading || isGenerating || !chatInput.trim() || !content
                     ? 'cursor-not-allowed bg-slate-300'
                     : 'bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600'
                 }`}
@@ -1219,11 +1207,11 @@ export default function SocialNode({
 
       <div
         className={`min-h-[190px] rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-sm ${
-          isGenerating ? 'relative z-50 pointer-events-none' : ''
+          isGenerating ? 'relative z-50' : ''
         }`}
       >
         {error ? <p className="text-xs text-red-600">{error}</p> : null}
-        {!error && isGenerating && !streamedOutput ? (
+        {!error && (isGenerating || isChatLoading) && !streamedOutput && !chatStreamedOutput ? (
           <div className="mb-2 flex items-center gap-2 text-xs text-body-color">
             <ColorRing
               visible
@@ -1232,7 +1220,7 @@ export default function SocialNode({
               ariaLabel="social-stream-loading"
               colors={['#2563eb', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb']}
             />
-            <span>Preparing your post...</span>
+            <span>{isChatLoading ? 'Processing your message...' : 'Preparing your post...'}</span>
           </div>
         ) : null}
         {!error && !content && !streamedOutput ? (
