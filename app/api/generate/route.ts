@@ -16,6 +16,16 @@ const GenerateSchema = z.object({
   platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
   keptSentences: z.string().optional(),
   generationMode: z.enum(['SOCIAL_POST', 'LINKEDIN_DM_LEAD']).optional(),
+  chatHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).optional(),
+  versionHistory: z.array(z.object({
+    version: z.number(),
+    content: z.string(),
+    source: z.string(),
+    createdAt: z.string(),
+  })).optional(),
 });
 
 type MessagingLength = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
@@ -97,6 +107,8 @@ export async function POST(req: Request) {
     outputNodeId: requestedOutputNodeId,
     socialNodeId: legacySocialNodeId,
     keptSentences,
+    chatHistory,
+    versionHistory,
   } = parsed.data;
   const requestedSocialNodeId = requestedOutputNodeId ?? legacySocialNodeId;
   let platform = parsed.data.platform as Platform;
@@ -265,6 +277,8 @@ export async function POST(req: Request) {
     toneValues,
     messagingLength: getMessagingLengthFromSocialData(requestedNode.data, platform),
     keptSentences: keptSentences,
+    chatHistory,
+    versionHistory,
   } as const;
   const prompt =
     isColdLeadGeneration

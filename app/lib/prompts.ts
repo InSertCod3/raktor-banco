@@ -10,6 +10,8 @@ type PromptArgs = {
   toneValues?: string[];
   messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
   keptSentences?: string;
+  chatHistory?: { role: 'user' | 'assistant'; content: string }[];
+  versionHistory?: { version: number; content: string; source: string; createdAt: string }[];
 };
 
 function normalizePromptArgs(args: PromptArgs) {
@@ -51,6 +53,26 @@ function normalizePromptArgs(args: PromptArgs) {
     ? ['', 'Keep these sentences from previous generation:', args.keptSentences.trim()]
     : [];
 
+  // Build chat history and version history blocks
+  let chatHistoryBlock: string[] = [];
+  if (args.chatHistory && args.chatHistory.length > 0) {
+    chatHistoryBlock = ['', 'Previous conversation in editor:'];
+    for (const msg of args.chatHistory) {
+      const role = msg.role === 'user' ? 'User' : 'Assistant';
+      chatHistoryBlock.push(`${role}: ${msg.content}`);
+    }
+  }
+
+  let versionHistoryBlock: string[] = [];
+  if (args.versionHistory && args.versionHistory.length > 0) {
+    const recentVersions = args.versionHistory.slice(-3); // Last 3 versions
+    versionHistoryBlock = ['', 'Previous versions of this content:'];
+    for (const v of recentVersions) {
+      const truncatedContent = v.content.length > 150 ? v.content.substring(0, 150) + '...' : v.content;
+      versionHistoryBlock.push(`[v${v.version} (${v.source})]: ${truncatedContent}`);
+    }
+  }
+
   return {
     idea,
     messagingLength,
@@ -60,6 +82,8 @@ function normalizePromptArgs(args: PromptArgs) {
     proofPointBlock,
     contextBlock,
     keptSentencesBlock,
+    chatHistoryBlock,
+    versionHistoryBlock,
   };
 }
 
@@ -72,6 +96,8 @@ export function buildPlatformPrompt(args: {
   toneValues?: string[];
   messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
   keptSentences?: string;
+  chatHistory?: { role: 'user' | 'assistant'; content: string }[];
+  versionHistory?: { version: number; content: string; source: string; createdAt: string }[];
 }): { system: string; user: string } {
   const {
     idea,
@@ -82,6 +108,8 @@ export function buildPlatformPrompt(args: {
     proofPointBlock,
     contextBlock,
     keptSentencesBlock,
+    chatHistoryBlock,
+    versionHistoryBlock,
   } = normalizePromptArgs(args);
 
   const system = [
@@ -110,6 +138,8 @@ export function buildPlatformPrompt(args: {
       ...proofPointBlock,
       ...contextBlock,
       ...keptSentencesBlock,
+      ...chatHistoryBlock,
+      ...versionHistoryBlock,
       '',
       `Messaging length preference: ${messagingLengthLabel}`,
       '',
@@ -144,6 +174,8 @@ export function buildPlatformPrompt(args: {
       ...proofPointBlock,
       ...contextBlock,
       ...keptSentencesBlock,
+      ...chatHistoryBlock,
+      ...versionHistoryBlock,
       '',
       `Messaging length preference: ${messagingLengthLabel}`,
       '',
@@ -178,6 +210,8 @@ export function buildPlatformPrompt(args: {
     ...proofPointBlock,
     ...contextBlock,
     ...keptSentencesBlock,
+    ...chatHistoryBlock,
+    ...versionHistoryBlock,
     '',
     `Messaging length preference: ${messagingLengthLabel}`,
     '',
@@ -202,6 +236,8 @@ export function buildLinkedInDmLeadPrompt(args: PromptArgs): { system: string; u
     proofPointBlock,
     contextBlock,
     keptSentencesBlock,
+    chatHistoryBlock,
+    versionHistoryBlock,
   } = normalizePromptArgs(args);
 
   const dmLengthConstraint =
@@ -231,6 +267,8 @@ export function buildLinkedInDmLeadPrompt(args: PromptArgs): { system: string; u
     ...proofPointBlock,
     ...contextBlock,
     ...keptSentencesBlock,
+    ...chatHistoryBlock,
+    ...versionHistoryBlock,
     '',
     `Messaging length preference: ${messagingLengthLabel}`,
     '',

@@ -44,6 +44,8 @@ import {
   type Generation,
   type NodeType,
   type Platform,
+  type ChatMessage,
+  type ContentVersion,
 } from "./MindMapContext";
 import {
   getNodeType,
@@ -1177,6 +1179,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       socialNodeId?: string;
       keptSentences?: string;
       generationMode?: GenerationMode;
+      chatHistory?: ChatMessage[];
+      versionHistory?: ContentVersion[];
     },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     setActiveGenerations((current) => current + 1);
@@ -1192,6 +1196,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           socialNodeId: options?.socialNodeId,
           keptSentences: options?.keptSentences,
           generationMode: options?.generationMode,
+          chatHistory: options?.chatHistory,
+          versionHistory: options?.versionHistory,
         }),
       });
 

@@ -6,6 +6,20 @@ import React from 'react';
 export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
 export type GenerationMode = 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
 
+export type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+};
+
+export type ContentVersion = {
+  version: number;
+  content: string;
+  contentByPlatform: Partial<Record<Platform, string>>;
+  createdAt: string;
+  source: 'generate' | 'chat' | 'refine' | 'manual' | 'original';
+};
+
 export type Generation = {
   id: string;
   createdAt: string;
@@ -49,6 +63,8 @@ export type MindMapContextValue = {
       socialNodeId?: string;
       keptSentences?: string;
       generationMode?: GenerationMode;
+      chatHistory?: ChatMessage[];
+      versionHistory?: ContentVersion[];
     }
   ) => Promise<{
     generation: Generation;

@@ -13,6 +13,16 @@ const ChatRefineSchema = z.object({
   userMessage: z.string().min(1),
   currentContent: z.string().min(1),
   generationMode: z.enum(['SOCIAL_POST', 'LINKEDIN_DM_LEAD']).optional(),
+  chatHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).optional(),
+  versionHistory: z.array(z.object({
+    version: z.number(),
+    content: z.string(),
+    source: z.string(),
+    createdAt: z.string(),
+  })).optional(),
 });
 
 function buildChatRefinePrompt(args: {
@@ -20,6 +30,8 @@ function buildChatRefinePrompt(args: {
   generationMode?: 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
   currentContent: string;
   userMessage: string;
+  chatHistory?: { role: 'user' | 'assistant'; content: string }[];
+  versionHistory?: { version: number; content: string; source: string; createdAt: string }[];
 }): { system: string; user: string } {
   const platformLabel =
     args.platform === 'LINKEDIN'
@@ -42,7 +54,30 @@ function buildChatRefinePrompt(args: {
     'Return only the modified post content, no explanations or markdown.',
   ].join('\n');
 
+  // Build context from chat history and version history
+  let contextSection = '';
+  
+  // Add version history context
+  if (args.versionHistory && args.versionHistory.length > 0) {
+    const recentVersions = args.versionHistory.slice(-3); // Last 3 versions
+    contextSection += 'Previous versions of this content:\n';
+    for (const v of recentVersions) {
+      contextSection += `[v${v.version} (${v.source})]: ${v.content.substring(0, 200)}${v.content.length > 200 ? '...' : ''}\n`;
+    }
+  }
+  
+  // Add chat history context
+  if (args.chatHistory && args.chatHistory.length > 0) {
+    if (contextSection) contextSection += '\n';
+    contextSection += 'Conversation history:\n';
+    for (const msg of args.chatHistory) {
+      const role = msg.role === 'user' ? 'User' : 'Assistant';
+      contextSection += `${role}: ${msg.content}\n`;
+    }
+  }
+
   const user = [
+    contextSection ? `${contextSection}\n---\n` : '',
     'Current post/dm:',
     `"${args.currentContent.trim()}"`,
     '',
@@ -79,7 +114,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { mapId, nodeId, platform, userMessage, currentContent, generationMode } = parsed.data;
+  const { mapId, nodeId, platform, userMessage, currentContent, generationMode, chatHistory, versionHistory } = parsed.data;
 
   // Verify node belongs to user and map
   const node = await prisma.node.findFirst({
@@ -96,6 +131,8 @@ export async function POST(req: Request) {
     generationMode,
     currentContent,
     userMessage,
+    chatHistory,
+    versionHistory,
   });
 
   const temperature = 0.3;
