@@ -29,7 +29,7 @@ import SuggestionNode from "./SuggestionNode";
 import ToneNode from "./ToneNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
-import { REACT_FLOW_PANE_BACKGROUND } from "./constant";
+import { REACT_FLOW_PANE_BACKGROUND } from "./constant/colors";
 import {
   EDGE_COLOR_NODE_HOOK_CTA,
   EDGE_COLOR_NODE_PAINPOINT,
