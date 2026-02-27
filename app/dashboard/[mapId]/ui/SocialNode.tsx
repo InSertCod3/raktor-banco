@@ -275,12 +275,9 @@ export default function SocialNode({
       ? String(contentByPlatform[platform] ?? '')
       : ((data?.platform ?? platform) === platform ? fallbackContent : '');
   
-  // Remove asterisks from content
+  // Process content for display
   const content = React.useMemo(() => {
-    let processed = rawContent;
-    processed = processed.replace(/\*\*/g, '');
-    processed = processed.replace(/\*/g, '');
-    return processed;
+    return rawContent;
   }, [rawContent]);
 
   useEffect(() => {

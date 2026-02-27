@@ -225,6 +225,29 @@ export async function POST(req: Request) {
         .filter(Boolean)
     )
   );
+  
+  // Collect DataNode answers specifically
+  const dataNodeTexts = nonSocialConnectedNodes
+    .filter((connected) => (connected.type ?? '').toLowerCase() === 'datanode')
+    .flatMap((connected) => {
+      // Collect questions and answers from data nodes
+      const data = connected.data as { questions?: unknown[]; answers?: unknown[] } | null;
+      const questions = data?.questions || [];
+      const answers = data?.answers || [];
+      const texts: string[] = [];
+      
+      questions.forEach((q: unknown, index: number) => {
+        const questionText = typeof q === 'string' ? q : '';
+        const answerText = answers[index] ? (typeof answers[index] === 'string' ? answers[index] : JSON.stringify(answers[index])) : '';
+        if (questionText && answerText) {
+          texts.push(`Q: ${questionText}\nA: ${answerText}`);
+        }
+      });
+      
+      return texts;
+    })
+    .filter(Boolean);
+
   const contextTexts = nonSocialConnectedNodes
     .filter((connected) => {
       const type = (connected.type ?? '').toLowerCase();
@@ -236,7 +259,7 @@ export async function POST(req: Request) {
   const promptArgs = {
     platform,
     ideaText,
-    contextTexts,
+    contextTexts: dataNodeTexts.length > 0 ? dataNodeTexts : contextTexts,
     painPointTexts,
     proofPointTexts,
     toneValues,
