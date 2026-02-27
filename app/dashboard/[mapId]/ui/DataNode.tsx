@@ -92,7 +92,7 @@ export default function DataNode({ id, data, selected }: NodeProps<DataNodeType>
 
   return (
     <div
-      className="relative w-[300px] rounded-2xl border border-cyan-300 bg-gradient-to-br from-cyan-50 via-white to-cyan-100 p-4 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
+      className="relative w-[360px] rounded-2xl border border-cyan-300 bg-gradient-to-br from-cyan-50 via-white to-cyan-100 p-4 shadow-[0_0_20px_rgba(6,182,212,0.15)]"
       onMouseDown={() => mindmap.setSelectedNodeId(id)}
       onMouseEnter={() => setIsNodeHovering(true)}
       onMouseLeave={() => setIsNodeHovering(false)}
@@ -257,8 +257,8 @@ export default function DataNode({ id, data, selected }: NodeProps<DataNodeType>
                 isEditingRef.current = false;
               }}
               placeholder={getAnswerPlaceholder()}
-              rows={3}
-              className="nodrag w-full resize-none rounded-lg border border-cyan-200 bg-white p-3 text-sm text-dark placeholder:text-body-color focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+              rows={5}
+              className="nodrag w-full resize rounded-lg border border-cyan-200 bg-white p-3 text-sm text-dark placeholder:text-body-color focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-200"
             />
           </div>
         ) : (
