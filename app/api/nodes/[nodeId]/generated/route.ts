@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PlatformType } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 
@@ -21,7 +20,7 @@ export async function GET(
     return NextResponse.json({ error: 'Invalid query.' }, { status: 400 });
   }
 
-  const platform = parsed.data.platform as PlatformType;
+  const platform = parsed.data.platform;
 
   // Enforce ownership: node -> map -> user
   const node = await prisma.node.findFirst({

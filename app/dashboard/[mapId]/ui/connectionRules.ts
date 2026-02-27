@@ -22,6 +22,7 @@ const CONTENT_SOURCE_TYPES: NodeType[] = [
   "proofpoint",
   "tone",
   "hookcta",
+  "datanode",
 ];
 
 const STRATEGY_AND_OUTPUT_TARGETS: NodeType[] = [
@@ -46,7 +47,7 @@ export const CONNECTION_RULES: ConnectionRulesConfig = {
     allowAsSource: true,
     allowAsTarget: false,
     allowedTargets: STRATEGY_AND_OUTPUT_TARGETS,
-    allowedSources: [],
+    allowedSources: ["datanode"],
     sourceWarning: "Start from Core Idea, then branch into strategy or an output node.",
     targetWarning: "Core Idea is your starting point, so connect outward from it.",
   },
@@ -119,9 +120,18 @@ export const CONNECTION_RULES: ConnectionRulesConfig = {
       "hookcta",
       "social",
       "coldlead",
+      "datanode",
     ],
     sourceWarning: "Suggestion is a helper note and should stay as an end point.",
     targetWarning: "Attach Suggestion to Core Idea, Notes, strategy, or output nodes.",
+  },
+  datanode: {
+    allowAsSource: false,
+    allowAsTarget: true,
+    allowedTargets: [],
+    allowedSources: ["idea"],
+    sourceWarning: "Data Node is a data container and should stay as an end point.",
+    targetWarning: "Attach Data Node to Core Idea only.",
   },
 };
 
@@ -145,6 +155,7 @@ const NODE_TYPES: NodeType[] = [
   "proofpoint",
   "tone",
   "hookcta",
+  "datanode",
 ];
 
 function isNodeType(value: unknown): value is NodeType {
@@ -168,6 +179,7 @@ export function getNodeWarning(nodeType: NodeType | null, direction: Direction):
 export function validateConnectionTypes(
   sourceType: NodeType | null,
   targetType: NodeType | null,
+  sourceHandle?: string | null,
 ): { valid: boolean; reason: string } {
   if (!sourceType || !targetType) {
     return { valid: false, reason: "Pick two valid nodes, then connect them." };
@@ -175,6 +187,18 @@ export function validateConnectionTypes(
   if (sourceType === targetType && sourceType === "idea") {
     return { valid: false, reason: "Connect each Core Idea to a different node." };
   }
+
+  // DataNodes can only be connected via the "datanode" handle (bottom of IdeaNode)
+  if (targetType === "datanode") {
+    if (sourceType !== "idea") {
+      return { valid: false, reason: "Data Nodes can only be attached to Core Idea." };
+    }
+    if (sourceHandle !== "datanode") {
+      return { valid: false, reason: "Use the bottom handle to connect Data Nodes." };
+    }
+    return { valid: true, reason: "" };
+  }
+
   if (isStrategyType(sourceType) && isStrategyType(targetType)) {
     return { valid: true, reason: "" };
   }

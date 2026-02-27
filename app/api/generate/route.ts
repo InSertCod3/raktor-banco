@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PlatformType, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
-import { buildLinkedInDmLeadPrompt, buildPlatformPrompt } from '@/app/lib/prompts';
+import { buildLinkedInDmLeadPrompt, buildPlatformPrompt, Platform } from '@/app/lib/prompts';
 import { generateId } from '@/app/lib/utils';
 import { checkUsageLimit } from '@/app/lib/usage';
 
@@ -19,13 +19,13 @@ const GenerateSchema = z.object({
 });
 
 type MessagingLength = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
-type SocialPlatform = PlatformType | 'INSTAGRAM';
+type SocialPlatform = Platform;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getMessagingLengthFromSocialData(data: unknown, platform: PlatformType | 'INSTAGRAM'): MessagingLength {
+function getMessagingLengthFromSocialData(data: unknown, platform: Platform): MessagingLength {
   if (!isRecord(data)) return 'standard';
   const byPlatform = data.messagingLengthByPlatform;
   if (!isRecord(byPlatform)) return 'standard';
@@ -99,7 +99,7 @@ export async function POST(req: Request) {
     keptSentences,
   } = parsed.data;
   const requestedSocialNodeId = requestedOutputNodeId ?? legacySocialNodeId;
-  let platform = parsed.data.platform as PlatformType | 'INSTAGRAM';
+  let platform = parsed.data.platform as Platform;
 
   const requestedNode = await prisma.node.findFirst({
     where: { id: nodeId, mapId, map: { userId } },
@@ -115,7 +115,7 @@ export async function POST(req: Request) {
       : 'social';
   const isColdLeadGeneration = outputNodeType === 'coldlead';
   if (isColdLeadGeneration) {
-    platform = PlatformType.LINKEDIN;
+    platform = 'LINKEDIN';
   }
 
   let ideaNode = requestedNode;
@@ -249,7 +249,7 @@ export async function POST(req: Request) {
       : buildPlatformPrompt(promptArgs);
 
   const last = await prisma.generatedContent.findFirst({
-    where: { nodeId: ideaNode.id, platform: platform as PlatformType },
+    where: { nodeId: ideaNode.id, platform: platform },
     orderBy: { revision: 'desc' },
     select: { revision: true },
   });
@@ -402,7 +402,7 @@ export async function POST(req: Request) {
           prisma.generatedContent.create({
             data: {
               nodeId: ideaNode.id,
-              platform: platform as PlatformType,
+              platform: platform,
               model,
               prompt: `${prompt.system}\n\n${prompt.user}`,
               output: outputText,

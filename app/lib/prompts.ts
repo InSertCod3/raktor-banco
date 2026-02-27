@@ -1,7 +1,8 @@
-import { PlatformType } from '@prisma/client';
+// Platform types - stored as strings in database, not as enum
+export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
 
 type PromptArgs = {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   ideaText: string;
   contextTexts?: string[];
   painPointTexts?: string[];
@@ -63,7 +64,7 @@ function normalizePromptArgs(args: PromptArgs) {
 }
 
 export function buildPlatformPrompt(args: {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   ideaText: string;
   contextTexts?: string[];
   painPointTexts?: string[];
@@ -90,7 +91,7 @@ export function buildPlatformPrompt(args: {
     'Return only the final post text.',
   ].join('\n');
 
-  if (args.platform === PlatformType.LINKEDIN) {
+  if (args.platform === 'LINKEDIN') {
     const linkedInLengthConstraint =
       messagingLength === 'shortest'
         ? '- 250-450 characters (aim, don’t hard-count)'
@@ -275,16 +276,49 @@ export function buildSuggestionPrompt(args: {
   return { system, user };
 }
 
+export function buildDataSuggestionPrompt(args: {
+  sourceText: string;
+  contextTexts?: string[];
+}): { system: string; user: string } {
+  const source = args.sourceText.trim();
+  const contextTexts = (args.contextTexts ?? []).map((text) => text.trim()).filter(Boolean);
+  const contextBlock = contextTexts.length
+    ? ['', 'Related context from connected nodes:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
+    : [];
+
+  const system = [
+    'You are a data research assistant.',
+    'Generate questions that help gather specific data points, facts, and metrics.',
+    'The questions should help the user think about what data would strengthen their idea.',
+    'Return plain text only with clear questions.',
+  ].join('\n');
+
+  const user = [
+    'Analyze this idea and generate questions to help gather supporting data:',
+    `"${source}"`,
+    ...contextBlock,
+    '',
+    'Generate exactly 3 questions that the user needs to answer to find supporting data:',
+    '1. [Question about relevant statistics or metrics]',
+    '2. [Question about specific examples or case studies]',
+    '3. [Question about proof points or evidence]',
+    '',
+    'Format each question clearly so the user can fill in their answers.',
+  ].join('\n');
+
+  return { system, user };
+}
+
 export function buildSentenceReplacementPrompt(args: {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   generationMode?: 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
   sentence: string;
   fullPostText: string;
 }): { system: string; user: string } {
   const platformLabel =
-    args.platform === PlatformType.LINKEDIN
+    args.platform === 'LINKEDIN'
       ? 'LinkedIn'
-      : args.platform === PlatformType.FACEBOOK
+      : args.platform === 'FACEBOOK'
       ? 'Facebook'
       : 'Instagram';
 

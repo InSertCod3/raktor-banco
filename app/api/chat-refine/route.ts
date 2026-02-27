@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PlatformType } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
 import { checkUsageLimit } from '@/app/lib/usage';
+import { Platform } from '@/app/lib/prompts';
 
 const ChatRefineSchema = z.object({
   mapId: z.string().min(1),
@@ -16,15 +16,15 @@ const ChatRefineSchema = z.object({
 });
 
 function buildChatRefinePrompt(args: {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   generationMode?: 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
   currentContent: string;
   userMessage: string;
 }): { system: string; user: string } {
   const platformLabel =
-    args.platform === PlatformType.LINKEDIN
+    args.platform === 'LINKEDIN'
       ? 'LinkedIn'
-      : args.platform === PlatformType.FACEBOOK
+      : args.platform === 'FACEBOOK'
       ? 'Facebook'
       : 'Instagram';
 

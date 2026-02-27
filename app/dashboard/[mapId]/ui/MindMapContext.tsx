@@ -14,7 +14,7 @@ export type Generation = {
   model: string;
 };
 
-export type NodeType = 'idea' | 'social' | 'coldlead' | 'notepad' | 'suggestion' | 'painpoint' | 'proofpoint' | 'tone' | 'hookcta';
+export type NodeType = 'idea' | 'social' | 'coldlead' | 'notepad' | 'suggestion' | 'painpoint' | 'proofpoint' | 'tone' | 'hookcta' | 'datanode';
 
 export type MindMapContextValue = {
   mapId: string;
@@ -33,6 +33,8 @@ export type MindMapContextValue = {
   ) => string | null;
   addRootNode: (type: NodeType, data?: Record<string, unknown>) => string;
   createSuggestionNode: (sourceNodeId: string) => void;
+  createDataNodes: (sourceNodeId: string) => Promise<void>;
+  createCustomDataNode: (sourceNodeId: string, dataType: string) => void;
   deleteNode: (nodeId: string) => void;
 
   generate: (
