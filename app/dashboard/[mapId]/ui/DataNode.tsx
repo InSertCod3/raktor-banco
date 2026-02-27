@@ -27,8 +27,26 @@ export default function DataNode({ id, data, selected }: NodeProps<DataNodeType>
   const [isNodeHovering, setIsNodeHovering] = useState(false);
   const [answer, setAnswer] = useState('');
   const [isDataTypeMenuOpen, setIsDataTypeMenuOpen] = useState(false);
+  const [textareaHeight, setTextareaHeight] = useState(120); // Default height for 5 rows
   const dataTypeMenuRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const isEditingRef = useRef(false);
+
+  // Set up ResizeObserver to track textarea height changes
+  useEffect(() => {
+    if (!textareaRef.current) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // Only update if height changed significantly (more than 10px difference)
+        const newHeight = Math.round(entry.contentRect.height);
+        setTextareaHeight((prev) => Math.abs(prev - newHeight) > 10 ? newHeight : prev);
+      }
+    });
+    
+    observer.observe(textareaRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const isFocused = selected || mindmap.selectedNodeId === id;
   const isLoading = data?.isLoading ?? false;
@@ -248,6 +266,7 @@ export default function DataNode({ id, data, selected }: NodeProps<DataNodeType>
             )}
             <p className="text-xs font-semibold text-cyan-900">{question}</p>
             <textarea
+              ref={textareaRef}
               value={answer}
               onChange={(e) => handleAnswerChange(e.target.value)}
               onFocus={() => {
@@ -256,9 +275,11 @@ export default function DataNode({ id, data, selected }: NodeProps<DataNodeType>
               onBlur={() => {
                 isEditingRef.current = false;
               }}
+              onMouseDown={(e) => e.stopPropagation()}
               placeholder={getAnswerPlaceholder()}
               rows={5}
-              className="nodrag w-full resize rounded-lg border border-cyan-200 bg-white p-3 text-sm text-dark placeholder:text-body-color focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+              style={{ height: textareaHeight, minHeight: '220px' }}
+              className="nodrag w-full resize-y rounded-lg border border-cyan-200 bg-white p-3 text-sm text-dark placeholder:text-body-color focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-200"
             />
           </div>
         ) : (

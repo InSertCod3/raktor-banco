@@ -1545,9 +1545,9 @@ export default function SocialNode({
             ) : (
               <ReactMarkdown
                 components={{
-                  p: ({ children }) => <p className="mb-2">{children}</p>,
-                  ul: ({ children }) => <ul className="mb-2 list-disc pl-4">{children}</ul>,
-                  ol: ({ children }) => <ol className="mb-2 list-decimal pl-4">{children}</ol>,
+                  p: ({ children }) => <p className="mb-1">{children}</p>,
+                  ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
                   li: ({ children }) => <li className="mb-1">{children}</li>,
                   strong: ({ children }) => <strong className="font-bold text-dark">{children}</strong>,
                   em: ({ children }) => <em className="italic">{children}</em>,
