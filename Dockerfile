@@ -2,36 +2,33 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Provide dummy DATABASE_URL for Prisma generate
+# Clerk build args (declared early, before they're needed)
+ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ARG CLERK_SECRET_KEY
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+ENV CLERK_SECRET_KEY=$CLERK_SECRET_KEY
+
+# Dummy DATABASE_URL for Prisma generate (runtime URL injected via Cloud Run secrets)
 ENV DATABASE_URL="postgresql://user:pass@localhost:5432/db"
 
-# Clerk environment variables (required for build)
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_ZGVzaXJlZC1hbmVtb25lLTg5LmNsZXJrLmFjY291bnRzLmRldiQ
-ENV CLERK_SECRET_KEY=sk_test_2tEqtrQS5BazzbGGhVo5e6UyfC3CIugNJvIZNhYtlB
-
-# Copy package files
+# Copy package files first (better layer caching)
 COPY package*.json ./
 
-# Install deps
-RUN npm install
+RUN npm ci --only=production=false
 
 # Copy rest of app
 COPY . .
 
-# Generate Prisma client
+# Generate Prisma client + build
 RUN npx prisma generate
-
-# Build Next.js
 RUN npm run build
 
-# Production env
 ENV NODE_ENV=production
 
 # Standalone output setup
-RUN mkdir -p .next/standalone/public .next/standalone/public/_next/static
-RUN cp -r public .next/standalone
-RUN cp -r .next/static .next/standalone/public/_next
+RUN cp -r public .next/standalone/ && \
+    cp -r .next/static .next/standalone/.next/static
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["node", ".next/standalone/server.js"]
