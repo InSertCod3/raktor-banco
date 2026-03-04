@@ -1143,6 +1143,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         hasGeneratedQuestions: true,
         singleQuestion: true,
         isCustom: true,
+        dataType,
+        attachedFiles: [],
       },
     };
 

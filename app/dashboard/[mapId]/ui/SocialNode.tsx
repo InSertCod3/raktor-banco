@@ -1028,7 +1028,7 @@ export default function SocialNode({
               </div>
               <h3 className="mb-2 text-xl font-semibold text-dark">Usage Limit Reached</h3>
               <p className="mb-6 text-body-color">
-                You've reached your monthly generation limit. Upgrade to continue creating content.
+                You've reached your weekly generation limit. Upgrade to continue creating content.
               </p>
               <div className="flex flex-col gap-3">
                 <Link

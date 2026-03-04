@@ -5,7 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap } from './MindMapContext';
 import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faWandMagicSparkles } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons';
 import NodeAddPanel from './NodeAddPanel';
 import ConnectionHandleWarning from './ConnectionHandleWarning';
 
@@ -50,6 +50,7 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
   const [isToneMenuOpen, setIsToneMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const tone = data?.tone && TONE_OPTIONS.includes(data.tone) ? data.tone : undefined;
+  const showToneWarning = !tone;
   const isFocused = selected || mindmap.selectedNodeId === id;
   const warningData = data as
     | { connectionWarning?: string | null; connectionWarningSide?: 'left' | 'right' | 'both' | null }
@@ -81,6 +82,16 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
       <Handle type="target" position={Position.Left} className="!h-2.5 !w-2.5 !bg-amber-500" />
       <Handle type="source" position={Position.Right} className="!h-2.5 !w-2.5 !bg-amber-500" />
       <ConnectionHandleWarning message={connectionWarning} side={connectionWarningSide} />
+      {showToneWarning ? (
+        <div className="group absolute -top-3 -right-3 z-20">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-amber-300 bg-amber-100 text-amber-700 shadow-sm">
+            <FontAwesomeIcon icon={faTriangleExclamation} className="text-[12px]" />
+          </div>
+          <div className="pointer-events-none absolute right-0 top-[calc(100%+8px)] hidden w-64 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[11px] leading-5 text-amber-900 shadow-lg group-hover:block">
+            No tone selected yet. Choose a tone style so outputs match your intended voice.
+          </div>
+        </div>
+      ) : null}
 
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
@@ -88,16 +99,6 @@ export default function ToneNode({ id, data, selected }: NodeProps<ToneNodeType>
           <div className="text-sm font-semibold text-dark">Message Delivery</div>
         </div>
         <div className="flex items-center gap-2">
-          {isHovering ? (
-            <button
-              type="button"
-              className="nodrag rounded-md bg-violet-500 px-2 py-1 text-[11px] text-white hover:bg-violet-600"
-              onClick={() => mindmap.createSuggestionNode(id)}
-              title="Create suggestion"
-            >
-              <FontAwesomeIcon icon={faWandMagicSparkles} />
-            </button>
-          ) : null}
           <button
             type="button"
             className="nodrag rounded-md bg-red-500 px-2 py-1 text-[11px] text-white hover:bg-red-600"

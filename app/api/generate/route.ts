@@ -65,6 +65,48 @@ function collectTextValues(input: unknown): string[] {
   return [];
 }
 
+function getFileDescriptionEntries(data: unknown): Array<{ name: string; description: string }> {
+  if (!isRecord(data)) return [];
+
+  const candidates = [
+    data.attachedFiles,
+    data.attachments,
+    data.files,
+  ];
+
+  const entries: Array<{ name: string; description: string }> = [];
+
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) continue;
+    for (const rawFile of candidate) {
+      if (!isRecord(rawFile)) continue;
+      const name =
+        typeof rawFile.originalName === 'string'
+          ? rawFile.originalName.trim()
+          : typeof rawFile.name === 'string'
+            ? rawFile.name.trim()
+            : 'attachment';
+
+      const descriptionCandidate =
+        typeof rawFile.description === 'string'
+          ? rawFile.description
+          : typeof rawFile.aiDescription === 'string'
+            ? rawFile.aiDescription
+            : typeof rawFile.analysis === 'string'
+              ? rawFile.analysis
+              : typeof rawFile.caption === 'string'
+                ? rawFile.caption
+                : '';
+
+      const description = descriptionCandidate.trim();
+      if (!description) continue;
+      entries.push({ name, description });
+    }
+  }
+
+  return entries;
+}
+
 function getContentByPlatform(data: unknown): Partial<Record<SocialPlatform, string>> {
   if (!isRecord(data)) return {};
   const raw = data.contentByPlatform;
@@ -243,7 +285,10 @@ export async function POST(req: Request) {
     .filter((connected) => (connected.type ?? '').toLowerCase() === 'datanode')
     .flatMap((connected) => {
       // Collect questions and answers from data nodes
-      const data = connected.data as { questions?: unknown[]; answers?: unknown[] } | null;
+      const data = connected.data as {
+        questions?: unknown[];
+        answers?: unknown[];
+      } | null;
       const questions = data?.questions || [];
       const answers = data?.answers || [];
       const texts: string[] = [];
@@ -254,6 +299,11 @@ export async function POST(req: Request) {
         if (questionText && answerText) {
           texts.push(`Q: ${questionText}\nA: ${answerText}`);
         }
+      });
+
+      const descriptions = getFileDescriptionEntries(connected.data);
+      descriptions.forEach((entry) => {
+        texts.push(`File (${entry.name}) description: ${entry.description}`);
       });
       
       return texts;

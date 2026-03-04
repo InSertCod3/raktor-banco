@@ -201,12 +201,20 @@ export default function IdeaNode({ id, data, selected }: NodeProps<IdeaNodeType>
                   mindmap.createCustomDataNode(id, 'text');
                 }}
               >
-                <div>📝 Text</div>
+                <div>Text</div>
                 <div className="mt-0.5 text-[11px] font-normal text-cyan-600">Add your own data manually</div>
               </button>
-              <div className="mt-2 border-t border-cyan-100 px-2 pt-2 text-[10px] text-cyan-500">
-                More types coming soon...
-              </div>
+              <button
+                type="button"
+                className="nodrag mt-1 w-full rounded-lg border border-cyan-200 bg-white px-3 py-2 text-left text-xs font-semibold text-cyan-700 transition hover:bg-cyan-50"
+                onClick={() => {
+                  setShowDataDropdown(false);
+                  mindmap.createCustomDataNode(id, 'document');
+                }}
+              >
+                <div>Image/PDF Upload</div>
+                <div className="mt-0.5 text-[11px] font-normal text-cyan-600">Attach JPG, JPEG, PNG, or PDF files</div>
+              </button>
             </div>
             <button
               type="button"
