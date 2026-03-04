@@ -5,7 +5,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { useMindMap, type Platform } from './MindMapContext';
 import ConfimationModel from '@/app/components/ConfimationModel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation, faPaperPlane, faMessage, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { faTrash, faHighlighter, faComment, faXmark, faTriangleExclamation, faPaperPlane, faMessage, faChevronDown, faGear } from '@fortawesome/free-solid-svg-icons';
 import toast from 'react-hot-toast';
 import { Tooltip } from 'react-tooltip';
 import { ColorRing } from 'react-loader-spinner';
@@ -200,6 +200,7 @@ export default function SocialNode({
   const tooltipClassName =
     'z-20 rounded-xl border border-slate-700/70 bg-slate-900/95 px-3 py-2 text-xs font-medium text-slate-100 shadow-xl backdrop-blur';
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSettingsMenuOpen, setIsSettingsMenuOpen] = useState(false);
   const [platform, setPlatform] = useState<Platform>(data?.platform ?? 'LINKEDIN');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -284,6 +285,7 @@ export default function SocialNode({
     hasAnyPlatformContent
       ? String(contentByPlatform[platform] ?? '')
       : ((data?.platform ?? platform) === platform ? fallbackContent : '');
+  const hasGeneratedContent = hasAnyPlatformContent || Boolean(fallbackContent.trim());
   
   // Process content for display
   const content = React.useMemo(() => {
@@ -295,6 +297,18 @@ export default function SocialNode({
       setPlatform(data.platform);
     }
   }, [data?.platform, platform]);
+
+  useEffect(() => {
+    if (!isSettingsMenuOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(`[data-social-settings="${id}"]`)) return;
+      setIsSettingsMenuOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [id, isSettingsMenuOpen]);
 
   // Reset selected sentence when active platform content changes
   useEffect(() => {
@@ -948,13 +962,43 @@ export default function SocialNode({
           <div className={`text-[10px] font-semibold uppercase tracking-[0.1em] ${headerTagClass}`}>{titleLabel}</div>
           <div className="mt-0.5 text-sm font-semibold text-dark">{platformLabel(platform)}</div>
         </div>
-        <button
-          type="button"
-          className="nodrag rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 transition-colors hover:bg-red-100"
-          onClick={() => setIsDeleteModalOpen(true)}
-        >
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
+        <div className="flex items-center gap-2">
+          {hasGeneratedContent ? (
+            <div className="relative" data-social-settings={id}>
+              <button
+                type="button"
+                className="nodrag rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[11px] text-slate-700 transition-colors hover:bg-slate-100"
+                onClick={() => setIsSettingsMenuOpen((current) => !current)}
+                aria-label="Open content settings"
+                aria-expanded={isSettingsMenuOpen}
+              >
+                <FontAwesomeIcon icon={faGear} />
+              </button>
+              {isSettingsMenuOpen ? (
+                <div className="absolute right-0 top-[calc(100%+8px)] z-50 min-w-[200px] rounded-xl border border-slate-200 bg-white p-2 shadow-lg">
+                  <button
+                    type="button"
+                    className="nodrag w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    onClick={() => {
+                      setIsSettingsMenuOpen(false);
+                      void handleGenerate();
+                    }}
+                    disabled={isGenerating || isChatLoading}
+                  >
+                    {isGenerating ? 'Generating...' : `Generate ${platformLabel(platform)}`}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            className="nodrag rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-[11px] text-red-700 transition-colors hover:bg-red-100"
+            onClick={() => setIsDeleteModalOpen(true)}
+          >
+            <FontAwesomeIcon icon={faTrash} />
+          </button>
+        </div>
       </div>
 
       {/* Warning: Viewing older version - with caution symbol and high visibility */}
@@ -1124,21 +1168,23 @@ export default function SocialNode({
       </div>
 
       <div className={`mb-3 flex gap-2 ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
-        <button
-          type="button"
-          className={generateButtonClass}
-          onClick={handleGenerate}
-          disabled={isGenerating || isChatLoading}
-        >
-          {isGenerating ? (
-            <span className="inline-flex items-center gap-2">
-              <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-              Generating...
-            </span>
-          ) : (
-            `Generate ${platformLabel(platform)}`
-          )}
-        </button>
+        {!hasGeneratedContent ? (
+          <button
+            type="button"
+            className={generateButtonClass}
+            onClick={handleGenerate}
+            disabled={isGenerating || isChatLoading}
+          >
+            {isGenerating ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Generating...
+              </span>
+            ) : (
+              `Generate ${platformLabel(platform)}`
+            )}
+          </button>
+        ) : null}
 
         {/* Refine Toggle */}
         {!isGenerating && !isChatLoading && (
@@ -1159,7 +1205,7 @@ export default function SocialNode({
               }
               enterRefineMode();
             }}
-            className={`nodrag flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
+            className={`nodrag flex flex-wrap justify-center items-center gap-2 rounded-xl w-full border px-3 py-2.5 text-xs font-semibold transition-all ${
               !content
                 ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
                 : isRefineMode 
@@ -1195,7 +1241,7 @@ export default function SocialNode({
               }
               setIsChatMode(true);
             }}
-            className={`nodrag flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all ${
+            className={`nodrag flex flex-wrap justify-center items-center gap-2 rounded-xl w-full border px-3 py-2.5 text-xs font-semibold transition-all ${
               !content
                 ? 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400'
                 : isChatMode
