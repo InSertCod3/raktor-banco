@@ -26,6 +26,7 @@ import NodePadNode from "./NodePadNode";
 import SocialNode from "./SocialNode";
 import ColdLeadNode from "./ColdLeadNode";
 import SuggestionNode from "./SuggestionNode";
+import DataNode from "./DataNode";
 import ToneNode from "./ToneNode";
 import NodeCreationSidebar from "./NodeCreationSidebar";
 import DeletableEdge from "./DeletableEdge";
@@ -35,6 +36,7 @@ import {
   EDGE_COLOR_NODE_PAINPOINT,
   EDGE_COLOR_NODE_PROOFPOINT,
   EDGE_COLOR_NODE_TONE,
+  EDGE_COLOR_DATANODE,
 } from "./constant/colors";
 import {
   MindMapContext,
@@ -42,6 +44,8 @@ import {
   type Generation,
   type NodeType,
   type Platform,
+  type ChatMessage,
+  type ContentVersion,
 } from "./MindMapContext";
 import {
   getNodeType,
@@ -185,6 +189,7 @@ function buildNodeData(type: NodeType, data?: Record<string, unknown>): Record<s
   if (type === "proofpoint") return { text: "", ...data };
   if (type === "hookcta") return { text: "", ...data };
   if (type === "tone") return { ...data };
+  if (type === "datanode") return { text: "", isLoading: false, suggestions: [], dataType: "text", ...data };
   return { text: "", ...data };
 }
 
@@ -245,6 +250,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       coldlead: ColdLeadNode,
       notepad: NodePadNode,
       suggestion: SuggestionNode,
+      datanode: DataNode,
     }),
     [],
   );
@@ -284,10 +290,10 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
   }, []);
 
   const validateConnection = useCallback(
-    (conn: Pick<Connection, "source" | "target">) => {
+    (conn: { source?: string | null; target?: string | null; sourceHandle?: string | null }) => {
       const sourceType = nodeTypeById.get(conn.source ?? "") ?? null;
       const targetType = nodeTypeById.get(conn.target ?? "") ?? null;
-      return validateConnectionTypes(sourceType, targetType);
+      return validateConnectionTypes(sourceType, targetType, conn.sourceHandle ?? null);
     },
     [nodeTypeById],
   );
@@ -907,6 +913,262 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
     window.requestAnimationFrame(() => snapToNode(suggestionNode));
   }
 
+  async function createDataNodes(sourceNodeId: string) {
+    const source = nodes.find((node) => node.id === sourceNodeId);
+    if (!source) return;
+
+    const sourceText = getNodeText(sourceNodeId).trim();
+    if (!sourceText) {
+      toast.error("Add text to the Idea node before generating data nodes.");
+      return;
+    }
+
+    // Create initial loading placeholder node
+    const loadingNodeId = createId();
+    const loadingNode: Node = {
+      id: loadingNodeId,
+      type: "datanode",
+      position: findNearestFreePosition(getViewportCenterPosition()),
+      data: {
+        text: "",
+        sourceNodeId,
+        isLoading: true,
+        questions: [],
+        answers: [],
+        hasGeneratedQuestions: false,
+      },
+    };
+
+    const dataEdge: Edge = {
+      id: createId(),
+      source: sourceNodeId,
+      target: loadingNodeId,
+      type: "deletable",
+      animated: true,
+      style: {
+        stroke: EDGE_COLOR_DATANODE,
+        strokeWidth: 2,
+      },
+      data: { onDelete: deleteEdgeById },
+    };
+
+    setNodes((current) => [...current, loadingNode]);
+    setEdges((current) => [...current, dataEdge]);
+    setSelectedNodeId(loadingNodeId);
+    window.requestAnimationFrame(() => snapToNode(loadingNode));
+
+    // Helper to extract questions from AI output
+    const extractQuestions = (text: string): string[] => {
+      const questions: string[] = [];
+      const lines = text.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.match(/^\d+[\.)]\s+.+\?/) || trimmed.startsWith('?')) {
+          const question = trimmed.replace(/^\d+[\.)]\s*/, '').replace(/^\?\s*/, '').trim();
+          if (question.length > 10) {
+            questions.push(question);
+          }
+        }
+      }
+      return questions;
+    };
+
+    // Fetch suggestions from API
+    try {
+      const res = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ mapId, sourceNodeId, type: "data" }),
+      });
+
+      if (!res.ok) {
+        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? "Data suggestion generation failed.");
+      }
+
+      if (!res.body) {
+        throw new Error("Suggestion stream is unavailable.");
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let output = "";
+
+      const processLine = (line: string) => {
+        const event = JSON.parse(line) as {
+          type?: "start" | "delta" | "done" | "error";
+          delta?: string;
+          output?: string;
+          error?: string;
+        };
+
+        if (event.type === "error") {
+          throw new Error(event.error ?? "Data suggestion generation failed.");
+        }
+
+        if (event.type === "delta" && event.delta) {
+          output += event.delta;
+          setNodes((current) =>
+            current.map((node) =>
+              node.id === loadingNodeId
+                ? { ...node, data: { ...node.data, text: output } }
+                : node
+            )
+          );
+        }
+
+        if (event.type === "done") {
+          output = event.output ?? output;
+        }
+      };
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        let lineBreak = buffer.indexOf("\n");
+        while (lineBreak >= 0) {
+          const line = buffer.slice(0, lineBreak).trim();
+          buffer = buffer.slice(lineBreak + 1);
+          if (line) {
+            processLine(line);
+          }
+          lineBreak = buffer.indexOf("\n");
+        }
+      }
+
+      const trailing = buffer.trim();
+      if (trailing) {
+        processLine(trailing);
+      }
+
+      // Extract questions from the output
+      const extractedQuestions = extractQuestions(output);
+      
+      const finalQuestions = extractedQuestions.length > 0 
+        ? extractedQuestions 
+        : [
+            "What statistics or metrics support this idea?",
+            "What examples or case studies illustrate this concept?",
+            "What proof points or evidence can you provide?"
+          ];
+
+      // Remove the loading node
+      setNodes((current) => current.filter((node) => node.id !== loadingNodeId));
+      setEdges((current) => current.filter((edge) => edge.target !== loadingNodeId));
+
+      // Create separate DataNodes for each question
+      const createdNodeIds: string[] = [];
+      let offsetIndex = 0;
+      
+      for (const question of finalQuestions) {
+        const dataNodeId = createId();
+        const dataNode: Node = {
+          id: dataNodeId,
+          type: "datanode",
+          position: findNearestFreePosition({
+            x: source.position.x + (offsetIndex * NODE_GRID_STEP_X) - (NODE_GRID_STEP_X * 1),
+            y: source.position.y + NODE_GRID_STEP_Y,
+          }),
+          data: {
+            text: "",
+            sourceNodeId,
+            isLoading: false,
+            questions: [question],
+            answers: [''],
+            hasGeneratedQuestions: true,
+            singleQuestion: true,
+          },
+        };
+
+        const dataNodeEdge: Edge = {
+          id: createId(),
+          source: sourceNodeId,
+          target: dataNodeId,
+          sourceHandle: "datanode",
+          type: "deletable",
+          animated: true,
+          style: {
+            stroke: EDGE_COLOR_DATANODE,
+            strokeWidth: 2,
+          },
+          data: { onDelete: deleteEdgeById },
+        };
+
+        setNodes((current) => [...current, dataNode]);
+        setEdges((current) => [...current, dataNodeEdge]);
+        createdNodeIds.push(dataNodeId);
+        offsetIndex++;
+      }
+
+      // Select the first created node
+      if (createdNodeIds.length > 0) {
+        setSelectedNodeId(createdNodeIds[0]);
+        const firstNode = nodes.find((n) => n.id === createdNodeIds[0]);
+        if (firstNode) {
+          window.requestAnimationFrame(() => snapToNode(firstNode));
+        }
+      }
+
+      toast.success(`${finalQuestions.length} Data nodes created! Answer each question.`);
+    } catch (e) {
+      // Remove the loading node on error
+      setNodes((current) => current.filter((node) => node.id !== loadingNodeId));
+      setEdges((current) => current.filter((edge) => edge.target !== loadingNodeId));
+      toast.error(e instanceof Error ? e.message : "Failed to create data nodes.");
+    }
+  }
+
+  function createCustomDataNode(sourceNodeId: string, dataType: string) {
+    const source = nodes.find((node) => node.id === sourceNodeId);
+    if (!source) return;
+
+    // Create a single custom DataNode for manual text input
+    const dataNodeId = createId();
+    const dataNode: Node = {
+      id: dataNodeId,
+      type: "datanode",
+      position: findNearestFreePosition({
+        x: source.position.x + NODE_GRID_STEP_X - (NODE_GRID_STEP_X * 0.5),
+        y: source.position.y + NODE_GRID_STEP_Y,
+      }),
+      data: {
+        text: "",
+        sourceNodeId,
+        isLoading: false,
+        questions: ["Your custom data point"],
+        answers: [""],
+        hasGeneratedQuestions: true,
+        singleQuestion: true,
+        isCustom: true,
+        dataType,
+        attachedFiles: [],
+      },
+    };
+
+    const dataNodeEdge: Edge = {
+      id: createId(),
+      source: sourceNodeId,
+      target: dataNodeId,
+      sourceHandle: "datanode",
+      type: "deletable",
+      animated: true,
+      style: {
+        stroke: EDGE_COLOR_DATANODE,
+        strokeWidth: 2,
+      },
+      data: { onDelete: deleteEdgeById },
+    };
+
+    setNodes((current) => [...current, dataNode]);
+    setEdges((current) => [...current, dataNodeEdge]);
+    setSelectedNodeId(dataNodeId);
+    window.requestAnimationFrame(() => snapToNode(dataNode));
+    toast.success("Data node created! Add your custom data.");
+  }
+
   async function generate(
     nodeId: string,
     platform: Platform,
@@ -919,6 +1181,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
       socialNodeId?: string;
       keptSentences?: string;
       generationMode?: GenerationMode;
+      chatHistory?: ChatMessage[];
+      versionHistory?: ContentVersion[];
     },
   ): Promise<{ generation: Generation; socialNode?: Node; socialEdge?: Edge }> {
     setActiveGenerations((current) => current + 1);
@@ -934,6 +1198,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
           socialNodeId: options?.socialNodeId,
           keptSentences: options?.keptSentences,
           generationMode: options?.generationMode,
+          chatHistory: options?.chatHistory,
+          versionHistory: options?.versionHistory,
         }),
       });
 
@@ -1202,6 +1468,8 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
         addChildNode: addChildNodeById,
         addRootNode,
         createSuggestionNode,
+        createDataNodes,
+        createCustomDataNode,
         deleteNode,
         generate,
         generateSuggestion,

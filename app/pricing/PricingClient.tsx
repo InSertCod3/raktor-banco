@@ -16,6 +16,7 @@ const pricingPlans = [
       '8 Generations per week',
       'LinkedIn, Facebook, Instagram',
       'Basic content generation',
+      'No Data Node file uploads',
     ],
     buttonClass: 'bg-[#10b981] text-white hover:bg-[#059669] shadow-lg shadow-emerald-500/30',
     popular: false,
@@ -28,8 +29,10 @@ const pricingPlans = [
     description: 'For content creators and solopreneurs',
     features: [
       '15 Mind Maps',
-      '200 Generations per month',
+      '50 Generations per week',
       'LinkedIn, Facebook, Instagram',
+      'Data Node file uploads (JPG, JPEG, PNG, PDF)',
+      '1 GB file storage',
       'Priority support',
     ],
     buttonClass: 'bg-gradient-to-r from-orange-500 to-rose-500 text-white hover:from-orange-600 hover:to-rose-600 shadow-lg shadow-orange-500/30',
@@ -43,8 +46,10 @@ const pricingPlans = [
     description: 'For founders and serious builders',
     features: [
       '35 Mind Maps',
-      '500 Generations per month',
+      '125 Generations per week',
       'LinkedIn, Facebook, Instagram',
+      'Data Node file uploads (JPG, JPEG, PNG, PDF)',
+      '5 GB file storage',
       'Priority support',
       'Early access to new features',
     ],
@@ -204,7 +209,7 @@ export default function PricingClient({ subscriptionTier }: PricingClientProps) 
                   <span className="text-emerald-500">✓</span> 500+ Mind Maps
                 </li>
                 <li className="flex items-center gap-3 text-sm text-[#5f6861]">
-                  <span className="text-emerald-500">✓</span> 1,000+ Generations per month
+                  <span className="text-emerald-500">✓</span> 1,000+ Generations per week
                 </li>
                 <li className="flex items-center gap-3 text-sm text-[#5f6861]">
                   <span className="text-emerald-500">✓</span> LinkedIn, Facebook, Instagram, TikTok
@@ -265,10 +270,10 @@ export default function PricingClient({ subscriptionTier }: PricingClientProps) 
                 <td className="py-3 text-center">500+</td>
               </tr>
               <tr className="border-b border-[#e1ddd2]">
-                <td className="py-3">Generations per month</td>
-                <td className="py-3 text-center">~32 (8/week)</td>
-                <td className="py-3 text-center">200</td>
-                <td className="py-3 text-center">500</td>
+                <td className="py-3">Generations per week</td>
+                <td className="py-3 text-center">8</td>
+                <td className="py-3 text-center">50</td>
+                <td className="py-3 text-center">125</td>
                 <td className="py-3 text-center">1,000</td>
               </tr>
               <tr className="border-b border-[#e1ddd2]">
@@ -277,6 +282,13 @@ export default function PricingClient({ subscriptionTier }: PricingClientProps) 
                 <td className="py-3 text-center">3</td>
                 <td className="py-3 text-center">3</td>
                 <td className="py-3 text-center">4</td>
+              </tr>
+              <tr className="border-b border-[#e1ddd2]">
+                <td className="py-3">Data Node File Storage</td>
+                <td className="py-3 text-center">—</td>
+                <td className="py-3 text-center">1 GB</td>
+                <td className="py-3 text-center">5 GB</td>
+                <td className="py-3 text-center">Custom</td>
               </tr>
               <tr className="border-b border-[#e1ddd2]">
                 <td className="py-3">Priority Support</td>

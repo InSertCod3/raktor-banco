@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { PlatformType } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { generateSocialText } from '@/app/lib/llm';
-import { buildSentenceReplacementPrompt } from '@/app/lib/prompts';
+import { buildSentenceReplacementPrompt, Platform } from '@/app/lib/prompts';
 import { checkUsageLimit, recordUsage } from '@/app/lib/usage';
 
 const SentenceSuggestionsSchema = z.object({
@@ -112,7 +111,7 @@ export async function POST(req: Request) {
   }
 
   const prompt = buildSentenceReplacementPrompt({
-    platform: platform as PlatformType | 'INSTAGRAM',
+    platform: platform as Platform,
     generationMode,
     sentence,
     fullPostText,
@@ -132,7 +131,7 @@ export async function POST(req: Request) {
   const savedGeneration = await prisma.generatedContent.create({
     data: {
       nodeId: node.id,
-      platform: platform as PlatformType,
+      platform: platform,
       model: generated.model,
       prompt: `${prompt.system}\n\n${prompt.user}`,
       output: generated.outputText,

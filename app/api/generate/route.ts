@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PlatformType, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
-import { buildLinkedInDmLeadPrompt, buildPlatformPrompt } from '@/app/lib/prompts';
+import { buildLinkedInDmLeadPrompt, buildPlatformPrompt, Platform } from '@/app/lib/prompts';
 import { generateId } from '@/app/lib/utils';
 import { checkUsageLimit } from '@/app/lib/usage';
 
@@ -16,16 +16,26 @@ const GenerateSchema = z.object({
   platform: z.enum(['LINKEDIN', 'FACEBOOK', 'INSTAGRAM']),
   keptSentences: z.string().optional(),
   generationMode: z.enum(['SOCIAL_POST', 'LINKEDIN_DM_LEAD']).optional(),
+  chatHistory: z.array(z.object({
+    role: z.enum(['user', 'assistant']),
+    content: z.string(),
+  })).optional(),
+  versionHistory: z.array(z.object({
+    version: z.number(),
+    content: z.string(),
+    source: z.string(),
+    createdAt: z.string(),
+  })).optional(),
 });
 
 type MessagingLength = 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
-type SocialPlatform = PlatformType | 'INSTAGRAM';
+type SocialPlatform = Platform;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getMessagingLengthFromSocialData(data: unknown, platform: PlatformType | 'INSTAGRAM'): MessagingLength {
+function getMessagingLengthFromSocialData(data: unknown, platform: Platform): MessagingLength {
   if (!isRecord(data)) return 'standard';
   const byPlatform = data.messagingLengthByPlatform;
   if (!isRecord(byPlatform)) return 'standard';
@@ -53,6 +63,48 @@ function collectTextValues(input: unknown): string[] {
   }
 
   return [];
+}
+
+function getFileDescriptionEntries(data: unknown): Array<{ name: string; description: string }> {
+  if (!isRecord(data)) return [];
+
+  const candidates = [
+    data.attachedFiles,
+    data.attachments,
+    data.files,
+  ];
+
+  const entries: Array<{ name: string; description: string }> = [];
+
+  for (const candidate of candidates) {
+    if (!Array.isArray(candidate)) continue;
+    for (const rawFile of candidate) {
+      if (!isRecord(rawFile)) continue;
+      const name =
+        typeof rawFile.originalName === 'string'
+          ? rawFile.originalName.trim()
+          : typeof rawFile.name === 'string'
+            ? rawFile.name.trim()
+            : 'attachment';
+
+      const descriptionCandidate =
+        typeof rawFile.description === 'string'
+          ? rawFile.description
+          : typeof rawFile.aiDescription === 'string'
+            ? rawFile.aiDescription
+            : typeof rawFile.analysis === 'string'
+              ? rawFile.analysis
+              : typeof rawFile.caption === 'string'
+                ? rawFile.caption
+                : '';
+
+      const description = descriptionCandidate.trim();
+      if (!description) continue;
+      entries.push({ name, description });
+    }
+  }
+
+  return entries;
 }
 
 function getContentByPlatform(data: unknown): Partial<Record<SocialPlatform, string>> {
@@ -97,9 +149,11 @@ export async function POST(req: Request) {
     outputNodeId: requestedOutputNodeId,
     socialNodeId: legacySocialNodeId,
     keptSentences,
+    chatHistory,
+    versionHistory,
   } = parsed.data;
   const requestedSocialNodeId = requestedOutputNodeId ?? legacySocialNodeId;
-  let platform = parsed.data.platform as PlatformType | 'INSTAGRAM';
+  let platform = parsed.data.platform as Platform;
 
   const requestedNode = await prisma.node.findFirst({
     where: { id: nodeId, mapId, map: { userId } },
@@ -115,7 +169,7 @@ export async function POST(req: Request) {
       : 'social';
   const isColdLeadGeneration = outputNodeType === 'coldlead';
   if (isColdLeadGeneration) {
-    platform = PlatformType.LINKEDIN;
+    platform = 'LINKEDIN';
   }
 
   let ideaNode = requestedNode;
@@ -225,6 +279,37 @@ export async function POST(req: Request) {
         .filter(Boolean)
     )
   );
+  
+  // Collect DataNode answers specifically
+  const dataNodeTexts = nonSocialConnectedNodes
+    .filter((connected) => (connected.type ?? '').toLowerCase() === 'datanode')
+    .flatMap((connected) => {
+      // Collect questions and answers from data nodes
+      const data = connected.data as {
+        questions?: unknown[];
+        answers?: unknown[];
+      } | null;
+      const questions = data?.questions || [];
+      const answers = data?.answers || [];
+      const texts: string[] = [];
+      
+      questions.forEach((q: unknown, index: number) => {
+        const questionText = typeof q === 'string' ? q : '';
+        const answerText = answers[index] ? (typeof answers[index] === 'string' ? answers[index] : JSON.stringify(answers[index])) : '';
+        if (questionText && answerText) {
+          texts.push(`Q: ${questionText}\nA: ${answerText}`);
+        }
+      });
+
+      const descriptions = getFileDescriptionEntries(connected.data);
+      descriptions.forEach((entry) => {
+        texts.push(`File (${entry.name}) description: ${entry.description}`);
+      });
+      
+      return texts;
+    })
+    .filter(Boolean);
+
   const contextTexts = nonSocialConnectedNodes
     .filter((connected) => {
       const type = (connected.type ?? '').toLowerCase();
@@ -236,12 +321,14 @@ export async function POST(req: Request) {
   const promptArgs = {
     platform,
     ideaText,
-    contextTexts,
+    contextTexts: dataNodeTexts.length > 0 ? dataNodeTexts : contextTexts,
     painPointTexts,
     proofPointTexts,
     toneValues,
     messagingLength: getMessagingLengthFromSocialData(requestedNode.data, platform),
     keptSentences: keptSentences,
+    chatHistory,
+    versionHistory,
   } as const;
   const prompt =
     isColdLeadGeneration
@@ -249,7 +336,7 @@ export async function POST(req: Request) {
       : buildPlatformPrompt(promptArgs);
 
   const last = await prisma.generatedContent.findFirst({
-    where: { nodeId: ideaNode.id, platform: platform as PlatformType },
+    where: { nodeId: ideaNode.id, platform: platform },
     orderBy: { revision: 'desc' },
     select: { revision: true },
   });
@@ -402,7 +489,7 @@ export async function POST(req: Request) {
           prisma.generatedContent.create({
             data: {
               nodeId: ideaNode.id,
-              platform: platform as PlatformType,
+              platform: platform,
               model,
               prompt: `${prompt.system}\n\n${prompt.user}`,
               output: outputText,

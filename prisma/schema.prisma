@@ -6,12 +6,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum PlatformType {
-  LINKEDIN
-  FACEBOOK
-  INSTAGRAM
-}
-
 model User {
   id            String   @id @default(cuid())
   createdAt     DateTime @default(now())
@@ -24,6 +18,7 @@ model User {
   maps          Map[]
   subscription  Subscription?
   usageRecords  UsageRecord[]
+  uploadedFiles UploadedFile[]
 }
 
 model Map {
@@ -54,6 +49,7 @@ model Node {
   data       Json
 
   generated  GeneratedContent[]
+  fileLinks  NodeFileLink[]
 
   @@index([mapId])
 }
@@ -83,7 +79,7 @@ model GeneratedContent {
   nodeId       String
   node         Node         @relation(fields: [nodeId], references: [id], onDelete: Cascade)
 
-  platform     PlatformType
+  platform     String
   model        String
   prompt       String
   output       String
@@ -118,9 +114,9 @@ model Subscription {
   startDate    DateTime @default(now())
   endDate      DateTime?
   
-  usageLimit   Int      // Monthly generation limit
+  usageLimit   Int      // Weekly generation limit
   mapLimit     Int      @default(10) // Total number of maps allowed
-  resetPeriod  String   @default("month") // "week" or "month"
+  resetPeriod  String   @default("week") // "week" or "month"
 }
 
 model UsageRecord {
@@ -137,5 +133,39 @@ model UsageRecord {
   
   @@index([userId, usageDate])
   @@index([userId, createdAt])
+}
+
+model UploadedFile {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  originalName  String
+  extension     String
+  mimeType      String
+  sizeBytes     BigInt
+  gcsBucket     String
+  gcsObjectPath String   @unique
+
+  nodeLinks     NodeFileLink[]
+
+  @@index([userId, createdAt])
+}
+
+model NodeFileLink {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  nodeId    String
+  node      Node     @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  fileId    String
+  file      UploadedFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([nodeId, fileId])
+  @@index([fileId])
 }
 

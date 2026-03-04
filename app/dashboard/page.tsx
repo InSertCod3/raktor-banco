@@ -3,10 +3,12 @@ import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import BackgroundGrid from '@/app/components/BackgroundGrid';
 import MapListClient from './ui/MapListClient';
+import FileBrowserClient from './ui/FileBrowserClient';
 import LogoutButton from '@/app/components/LogoutButton';
 import UserMenu from '@/app/components/UserMenu';
-import { getUsageData, getUserSubscriptionTier } from '@/app/lib/usage';
+import { getUsageData, getUserStorageUsageBytes } from '@/app/lib/usage';
 import { SubscriptionTier } from '@prisma/client';
+import { getFilePolicyForTier } from '@/app/lib/filePolicy';
 
 export default async function MindAppHome({
   searchParams,
@@ -63,6 +65,18 @@ export default async function MindAppHome({
   let currentUsage = 0;
   let mapLimit = 2;
   let currentMaps = 0;
+  let storageUsedBytes = 0;
+  let storageMaxBytes = 0;
+  let uploadsEnabled = false;
+  let uploadedFiles: {
+    id: string;
+    originalName: string;
+    extension: string;
+    mimeType: string;
+    sizeBytes: number;
+    createdAt: string;
+    downloadUrl: string;
+  }[] = [];
   
   if (userId) {
     try {
@@ -72,6 +86,34 @@ export default async function MindAppHome({
       currentUsage = usageData.currentUsage;
       mapLimit = usageData.mapLimit ?? 2;
       currentMaps = usageData.currentMaps ?? 0;
+
+      const filePolicy = getFilePolicyForTier(subscriptionTier as SubscriptionTier);
+      uploadsEnabled = filePolicy.dataNodeFileUploadEnabled;
+      storageMaxBytes = filePolicy.maxStorageBytes;
+      storageUsedBytes = await getUserStorageUsageBytes(userId);
+
+      const files = await prisma.uploadedFile.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          originalName: true,
+          extension: true,
+          mimeType: true,
+          sizeBytes: true,
+          createdAt: true,
+        },
+      });
+      uploadedFiles = files.map((file) => ({
+        id: file.id,
+        originalName: file.originalName,
+        extension: file.extension,
+        mimeType: file.mimeType,
+        sizeBytes: Number(file.sizeBytes),
+        createdAt: file.createdAt.toISOString(),
+        downloadUrl: `/api/files/${file.id}/download`,
+      }));
     } catch (err) {
       console.log('Error fetching usage data:', err);
     }
@@ -180,7 +222,7 @@ export default async function MindAppHome({
                     {currentUsage} <span className="text-xs text-body-color">/ {usageLimit}</span>
                   </div>
                   <div className="text-xs text-body-color">
-                    {subscriptionTier === 'FREE' ? 'weekly' : 'monthly'}
+                    weekly
                   </div>
                 </div>
                 <div className="mt-2 h-2 w-full rounded-full bg-gray-100">
@@ -261,6 +303,13 @@ export default async function MindAppHome({
             <MapListClient initialMaps={maps} />
           </div>
         )}
+
+        <FileBrowserClient
+          initialFiles={uploadedFiles}
+          uploadsEnabled={uploadsEnabled}
+          maxStorageBytes={storageMaxBytes}
+          usedBytes={storageUsedBytes}
+        />
       </div>
     </main>
   );

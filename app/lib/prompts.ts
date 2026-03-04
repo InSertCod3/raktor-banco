@@ -1,7 +1,8 @@
-import { PlatformType } from '@prisma/client';
+// Platform types - stored as strings in database, not as enum
+export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
 
 type PromptArgs = {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   ideaText: string;
   contextTexts?: string[];
   painPointTexts?: string[];
@@ -9,6 +10,8 @@ type PromptArgs = {
   toneValues?: string[];
   messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
   keptSentences?: string;
+  chatHistory?: { role: 'user' | 'assistant'; content: string }[];
+  versionHistory?: { version: number; content: string; source: string; createdAt: string }[];
 };
 
 function normalizePromptArgs(args: PromptArgs) {
@@ -50,6 +53,26 @@ function normalizePromptArgs(args: PromptArgs) {
     ? ['', 'Keep these sentences from previous generation:', args.keptSentences.trim()]
     : [];
 
+  // Build chat history and version history blocks
+  let chatHistoryBlock: string[] = [];
+  if (args.chatHistory && args.chatHistory.length > 0) {
+    chatHistoryBlock = ['', 'Previous conversation in editor:'];
+    for (const msg of args.chatHistory) {
+      const role = msg.role === 'user' ? 'User' : 'Assistant';
+      chatHistoryBlock.push(`${role}: ${msg.content}`);
+    }
+  }
+
+  let versionHistoryBlock: string[] = [];
+  if (args.versionHistory && args.versionHistory.length > 0) {
+    const recentVersions = args.versionHistory.slice(-3); // Last 3 versions
+    versionHistoryBlock = ['', 'Previous versions of this content:'];
+    for (const v of recentVersions) {
+      const truncatedContent = v.content.length > 150 ? v.content.substring(0, 150) + '...' : v.content;
+      versionHistoryBlock.push(`[v${v.version} (${v.source})]: ${truncatedContent}`);
+    }
+  }
+
   return {
     idea,
     messagingLength,
@@ -59,11 +82,13 @@ function normalizePromptArgs(args: PromptArgs) {
     proofPointBlock,
     contextBlock,
     keptSentencesBlock,
+    chatHistoryBlock,
+    versionHistoryBlock,
   };
 }
 
 export function buildPlatformPrompt(args: {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   ideaText: string;
   contextTexts?: string[];
   painPointTexts?: string[];
@@ -71,6 +96,8 @@ export function buildPlatformPrompt(args: {
   toneValues?: string[];
   messagingLength?: 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest';
   keptSentences?: string;
+  chatHistory?: { role: 'user' | 'assistant'; content: string }[];
+  versionHistory?: { version: number; content: string; source: string; createdAt: string }[];
 }): { system: string; user: string } {
   const {
     idea,
@@ -81,6 +108,8 @@ export function buildPlatformPrompt(args: {
     proofPointBlock,
     contextBlock,
     keptSentencesBlock,
+    chatHistoryBlock,
+    versionHistoryBlock,
   } = normalizePromptArgs(args);
 
   const system = [
@@ -90,7 +119,7 @@ export function buildPlatformPrompt(args: {
     'Return only the final post text.',
   ].join('\n');
 
-  if (args.platform === PlatformType.LINKEDIN) {
+  if (args.platform === 'LINKEDIN') {
     const linkedInLengthConstraint =
       messagingLength === 'shortest'
         ? '- 250-450 characters (aim, don’t hard-count)'
@@ -109,6 +138,8 @@ export function buildPlatformPrompt(args: {
       ...proofPointBlock,
       ...contextBlock,
       ...keptSentencesBlock,
+      ...chatHistoryBlock,
+      ...versionHistoryBlock,
       '',
       `Messaging length preference: ${messagingLengthLabel}`,
       '',
@@ -143,6 +174,8 @@ export function buildPlatformPrompt(args: {
       ...proofPointBlock,
       ...contextBlock,
       ...keptSentencesBlock,
+      ...chatHistoryBlock,
+      ...versionHistoryBlock,
       '',
       `Messaging length preference: ${messagingLengthLabel}`,
       '',
@@ -177,6 +210,8 @@ export function buildPlatformPrompt(args: {
     ...proofPointBlock,
     ...contextBlock,
     ...keptSentencesBlock,
+    ...chatHistoryBlock,
+    ...versionHistoryBlock,
     '',
     `Messaging length preference: ${messagingLengthLabel}`,
     '',
@@ -201,6 +236,8 @@ export function buildLinkedInDmLeadPrompt(args: PromptArgs): { system: string; u
     proofPointBlock,
     contextBlock,
     keptSentencesBlock,
+    chatHistoryBlock,
+    versionHistoryBlock,
   } = normalizePromptArgs(args);
 
   const dmLengthConstraint =
@@ -230,6 +267,8 @@ export function buildLinkedInDmLeadPrompt(args: PromptArgs): { system: string; u
     ...proofPointBlock,
     ...contextBlock,
     ...keptSentencesBlock,
+    ...chatHistoryBlock,
+    ...versionHistoryBlock,
     '',
     `Messaging length preference: ${messagingLengthLabel}`,
     '',
@@ -275,16 +314,49 @@ export function buildSuggestionPrompt(args: {
   return { system, user };
 }
 
+export function buildDataSuggestionPrompt(args: {
+  sourceText: string;
+  contextTexts?: string[];
+}): { system: string; user: string } {
+  const source = args.sourceText.trim();
+  const contextTexts = (args.contextTexts ?? []).map((text) => text.trim()).filter(Boolean);
+  const contextBlock = contextTexts.length
+    ? ['', 'Related context from connected nodes:', ...contextTexts.map((text, i) => `${i + 1}. ${text}`)]
+    : [];
+
+  const system = [
+    'You are a data research assistant.',
+    'Generate questions that help gather specific data points, facts, and metrics.',
+    'The questions should help the user think about what data would strengthen their idea.',
+    'Return plain text only with clear questions.',
+  ].join('\n');
+
+  const user = [
+    'Analyze this idea and generate questions to help gather supporting data:',
+    `"${source}"`,
+    ...contextBlock,
+    '',
+    'Generate exactly 3 questions that the user needs to answer to find supporting data:',
+    '1. [Question about relevant statistics or metrics]',
+    '2. [Question about specific examples or case studies]',
+    '3. [Question about proof points or evidence]',
+    '',
+    'Format each question clearly so the user can fill in their answers.',
+  ].join('\n');
+
+  return { system, user };
+}
+
 export function buildSentenceReplacementPrompt(args: {
-  platform: PlatformType | 'INSTAGRAM';
+  platform: Platform;
   generationMode?: 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
   sentence: string;
   fullPostText: string;
 }): { system: string; user: string } {
   const platformLabel =
-    args.platform === PlatformType.LINKEDIN
+    args.platform === 'LINKEDIN'
       ? 'LinkedIn'
-      : args.platform === PlatformType.FACEBOOK
+      : args.platform === 'FACEBOOK'
       ? 'Facebook'
       : 'Instagram';
 

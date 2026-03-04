@@ -6,6 +6,20 @@ import React from 'react';
 export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
 export type GenerationMode = 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
 
+export type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
+};
+
+export type ContentVersion = {
+  version: number;
+  content: string;
+  contentByPlatform: Partial<Record<Platform, string>>;
+  createdAt: string;
+  source: 'generate' | 'chat' | 'refine' | 'manual' | 'original';
+};
+
 export type Generation = {
   id: string;
   createdAt: string;
@@ -14,7 +28,7 @@ export type Generation = {
   model: string;
 };
 
-export type NodeType = 'idea' | 'social' | 'coldlead' | 'notepad' | 'suggestion' | 'painpoint' | 'proofpoint' | 'tone' | 'hookcta';
+export type NodeType = 'idea' | 'social' | 'coldlead' | 'notepad' | 'suggestion' | 'painpoint' | 'proofpoint' | 'tone' | 'hookcta' | 'datanode';
 
 export type MindMapContextValue = {
   mapId: string;
@@ -33,6 +47,8 @@ export type MindMapContextValue = {
   ) => string | null;
   addRootNode: (type: NodeType, data?: Record<string, unknown>) => string;
   createSuggestionNode: (sourceNodeId: string) => void;
+  createDataNodes: (sourceNodeId: string) => Promise<void>;
+  createCustomDataNode: (sourceNodeId: string, dataType: string) => void;
   deleteNode: (nodeId: string) => void;
 
   generate: (
@@ -47,6 +63,8 @@ export type MindMapContextValue = {
       socialNodeId?: string;
       keptSentences?: string;
       generationMode?: GenerationMode;
+      chatHistory?: ChatMessage[];
+      versionHistory?: ContentVersion[];
     }
   ) => Promise<{
     generation: Generation;

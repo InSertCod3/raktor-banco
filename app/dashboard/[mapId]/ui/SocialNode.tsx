@@ -22,6 +22,7 @@ type SocialNodeData = {
   messagingLengthByPlatform?: Partial<Record<Platform, MessagingLengthOption | 'medium' | 'long'>>;
   versionHistory?: ContentVersion[];
   currentVersion?: number;
+  chatHistory?: ChatMessage[];
 };
 
 type ContentVersion = {
@@ -30,6 +31,12 @@ type ContentVersion = {
   contentByPlatform: Partial<Record<Platform, string>>;
   createdAt: string;
   source: 'generate' | 'chat' | 'refine' | 'manual' | 'original';
+};
+
+type ChatMessage = {
+  role: 'user' | 'assistant';
+  content: string;
+  createdAt: string;
 };
 
 type SocialNodeType = Node<SocialNodeData, 'social' | 'coldlead'>;
@@ -226,7 +233,10 @@ export default function SocialNode({
   // Chat mode state
   const [isChatMode, setIsChatMode] = useState(false);
   const [chatInput, setChatInput] = useState('');
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const storedChatHistory = (data?.chatHistory ?? []) as ChatMessage[];
+  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>(
+    storedChatHistory.map(msg => ({ role: msg.role, content: msg.content }))
+  );
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [chatStreamedOutput, setChatStreamedOutput] = useState('');
@@ -275,12 +285,9 @@ export default function SocialNode({
       ? String(contentByPlatform[platform] ?? '')
       : ((data?.platform ?? platform) === platform ? fallbackContent : '');
   
-  // Remove asterisks from content
+  // Process content for display
   const content = React.useMemo(() => {
-    let processed = rawContent;
-    processed = processed.replace(/\*\*/g, '');
-    processed = processed.replace(/\*/g, '');
-    return processed;
+    return rawContent;
   }, [rawContent]);
 
   useEffect(() => {
@@ -380,7 +387,13 @@ export default function SocialNode({
         {
           onDelta: (delta) => setStreamedOutput((current) => `${current}${delta}`),
         },
-        { outputNodeId: id, keptSentences: keptSentence || undefined, generationMode }
+        { 
+          outputNodeId: id, 
+          keptSentences: keptSentence || undefined, 
+          generationMode,
+          chatHistory: storedChatHistory,
+          versionHistory: versionHistory,
+        }
       );
       setStreamedOutput('');
       
@@ -431,8 +444,18 @@ export default function SocialNode({
     setIsChatLoading(true);
     setChatStreamedOutput('');
 
-    // Add user message to chat
-    setChatMessages((prev) => [...prev, { role: 'user', content: message }]);
+    // Add user message to chat and persist to node data
+    const userMsg = { role: 'user' as const, content: message };
+    setChatMessages((prev) => {
+      const updated = [...prev, userMsg];
+      // Persist chat history to node data
+      const newChatHistory: ChatMessage[] = updated.map(msg => ({
+        ...msg,
+        createdAt: new Date().toISOString(),
+      }));
+      mindmap.updateNodeData(id, { chatHistory: newChatHistory });
+      return updated;
+    });
 
     try {
       const response = await fetch('/api/chat-refine', {
@@ -445,6 +468,8 @@ export default function SocialNode({
           userMessage: message,
           currentContent: content,
           generationMode,
+          chatHistory: chatMessages,
+          versionHistory: versionHistory,
         }),
       });
 
@@ -475,11 +500,18 @@ export default function SocialNode({
                 if (event.type === 'delta' && event.delta) {
                   setChatStreamedOutput((prev) => `${prev}${event.delta}`);
                 } else if (event.type === 'done' && event.refinedContent) {
-                  // Add assistant message with the refined content
-                  setChatMessages((prev) => [
-                    ...prev,
-                    { role: 'assistant', content: event.refinedContent },
-                  ]);
+                  // Add assistant message with the refined content and persist
+                  const assistantMsg = { role: 'assistant' as const, content: event.refinedContent };
+                  setChatMessages((prev) => {
+                    const updated = [...prev, assistantMsg];
+                    // Persist chat history to node data
+                    const newChatHistory: ChatMessage[] = updated.map(msg => ({
+                      ...msg,
+                      createdAt: new Date().toISOString(),
+                    }));
+                    mindmap.updateNodeData(id, { chatHistory: newChatHistory });
+                    return updated;
+                  });
                   // Update the node content
                   mindmap.updateNodeData(id, {
                     content: event.refinedContent,
@@ -996,7 +1028,7 @@ export default function SocialNode({
               </div>
               <h3 className="mb-2 text-xl font-semibold text-dark">Usage Limit Reached</h3>
               <p className="mb-6 text-body-color">
-                You've reached your monthly generation limit. Upgrade to continue creating content.
+                You've reached your weekly generation limit. Upgrade to continue creating content.
               </p>
               <div className="flex flex-col gap-3">
                 <Link
@@ -1511,7 +1543,16 @@ export default function SocialNode({
                 sentenceChangeMap={refineSentenceChanges}
               />
             ) : (
-              <ReactMarkdown>
+              <ReactMarkdown
+                components={{
+                  p: ({ children }) => <p className="mb-1">{children}</p>,
+                  ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
+                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                  strong: ({ children }) => <strong className="font-bold text-dark">{children}</strong>,
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                }}
+              >
                 {displayContent}
               </ReactMarkdown>
             )}

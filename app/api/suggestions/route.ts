@@ -3,12 +3,13 @@ import { z } from 'zod';
 import { prisma } from '@/app/lib/db';
 import { getOrCreateCurrentUserId } from '@/app/lib/currentUser';
 import { streamSocialText } from '@/app/lib/llm';
-import { buildSuggestionPrompt } from '@/app/lib/prompts';
+import { buildSuggestionPrompt, buildDataSuggestionPrompt } from '@/app/lib/prompts';
 import { checkUsageLimit } from '@/app/lib/usage';
 
 const SuggestSchema = z.object({
   mapId: z.string().min(1),
   sourceNodeId: z.string().min(1),
+  type: z.enum(['suggestion', 'data']).optional().default('suggestion'),
 });
 
 function collectTextValues(input: unknown): string[] {
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 });
   }
 
-  const { mapId, sourceNodeId } = parsed.data;
+  const { mapId, sourceNodeId, type } = parsed.data;
 
   const sourceNode = await prisma.node.findFirst({
     where: { id: sourceNodeId, mapId, map: { userId } },
@@ -53,8 +54,8 @@ export async function POST(req: Request) {
   });
 
   if (!sourceNode) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  const type = (sourceNode.type ?? '').toLowerCase();
-  if (type === 'social' || type === 'suggestion') {
+  const nodeType = (sourceNode.type ?? '').toLowerCase();
+  if (nodeType === 'social' || nodeType === 'suggestion' || nodeType === 'datanode') {
     return NextResponse.json({ error: 'Suggestions require an idea, pain point, proof point, or notepad source node.' }, { status: 400 });
   }
 
@@ -79,16 +80,22 @@ export async function POST(req: Request) {
 
   const contextTexts = connectedNodes
     .filter((node) => {
-      const nodeType = (node.type ?? '').toLowerCase();
-      return nodeType !== 'social' && nodeType !== 'suggestion';
+      const connectedNodeType = (node.type ?? '').toLowerCase();
+      return connectedNodeType !== 'social' && connectedNodeType !== 'suggestion' && connectedNodeType !== 'datanode';
     })
     .flatMap((node) => collectTextValues(node.data))
     .filter(Boolean);
 
-  const prompt = buildSuggestionPrompt({
-    sourceText,
-    contextTexts,
-  });
+  // Use the appropriate prompt based on type parameter
+  const prompt = type === 'data'
+    ? buildDataSuggestionPrompt({
+        sourceText,
+        contextTexts,
+      })
+    : buildSuggestionPrompt({
+        sourceText,
+        contextTexts,
+      });
 
   const streamData = streamSocialText({
     systemPrompt: prompt.system,

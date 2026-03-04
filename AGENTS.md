@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the responsibilities, boundaries, and collaboration rules for AI agents working on the **Mind Mapper MVP** — a visual, LLM-powered content ideation and planning tool.
+This document defines the responsibilities, boundaries, and collaboration rules for AI agents working on the **Maydove MVP** — a visual, LLM-powered content ideation and planning tool.
 
 Agents must optimize for:
 - Simplicity over feature bloat

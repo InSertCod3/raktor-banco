@@ -1,5 +1,6 @@
 import { prisma } from '@/app/lib/db';
 import { SubscriptionTier } from '@prisma/client';
+import { getFilePolicyForTier } from '@/app/lib/filePolicy';
 
 /**
  * Get the current user's subscription tier
@@ -30,7 +31,7 @@ export async function getUserSubscriptionTier(userId: string) {
     isActive: true,
     usageLimit: subscription.usageLimit,
     mapLimit,
-    resetPeriod: subscription.resetPeriod as 'week' | 'month',
+    resetPeriod: 'week' as const,
   };
 }
 
@@ -81,7 +82,7 @@ export async function checkUsageLimit(userId: string) {
     };
   }
 
-  const usage = await getUserUsageCount(userId, subscription.resetPeriod as 'week' | 'month');
+  const usage = await getUserUsageCount(userId, 'week');
   
   return {
     allowed: usage < subscription.usageLimit,
@@ -137,7 +138,7 @@ export async function checkMapLimit(userId: string) {
 export async function getUsageData(userId: string) {
   const subscription = await getUserSubscriptionTier(userId);
   
-  const currentUsage = await getUserUsageCount(userId, subscription.resetPeriod as 'week' | 'month');
+  const currentUsage = await getUserUsageCount(userId, 'week');
   const mapCount = await getUserMapCount(userId);
 
   return {
@@ -148,5 +149,34 @@ export async function getUsageData(userId: string) {
     dailyUsage: [],
     currentMaps: mapCount,
     mapLimit: subscription.mapLimit === Infinity ? null : subscription.mapLimit,
+  };
+}
+
+export async function getUserStorageUsageBytes(userId: string) {
+  const aggregate = await prisma.uploadedFile.aggregate({
+    where: { userId },
+    _sum: { sizeBytes: true },
+  });
+
+  return Number(aggregate._sum.sizeBytes ?? BigInt(0));
+}
+
+export async function checkStorageLimit(userId: string, incomingBytes = 0) {
+  const subscription = await getUserSubscriptionTier(userId);
+  const policy = getFilePolicyForTier(subscription.tier);
+  const usedBytes = await getUserStorageUsageBytes(userId);
+
+  const allowedByFeature = policy.dataNodeFileUploadEnabled;
+  const allowedByQuota =
+    policy.maxStorageBytes > 0 &&
+    usedBytes + Math.max(0, incomingBytes) <= policy.maxStorageBytes;
+
+  return {
+    allowed: allowedByFeature && allowedByQuota,
+    tier: subscription.tier,
+    usedBytes,
+    maxStorageBytes: policy.maxStorageBytes,
+    remainingBytes: Math.max(policy.maxStorageBytes - usedBytes, 0),
+    policy,
   };
 }
