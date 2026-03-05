@@ -1168,24 +1168,6 @@ export default function SocialNode({
       </div>
 
       <div className={`mb-3 flex gap-2 ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
-        {!hasGeneratedContent ? (
-          <button
-            type="button"
-            className={generateButtonClass}
-            onClick={handleGenerate}
-            disabled={isGenerating || isChatLoading}
-          >
-            {isGenerating ? (
-              <span className="inline-flex items-center gap-2">
-                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                Generating...
-              </span>
-            ) : (
-              `Generate ${platformLabel(platform)}`
-            )}
-          </button>
-        ) : null}
-
         {/* Refine Toggle */}
         {!isGenerating && !isChatLoading && (
           <button
@@ -1257,6 +1239,26 @@ export default function SocialNode({
             <span className="hidden sm:inline">Chat</span>
           </button>
         )}
+      </div>
+
+      <div className={`mb-3 flex gap-2 ${isGenerating || isChatLoading ? 'blur-sm opacity-60' : ''}`}>
+                {!hasGeneratedContent ? (
+          <button
+            type="button"
+            className={generateButtonClass}
+            onClick={handleGenerate}
+            disabled={isGenerating || isChatLoading}
+          >
+            {isGenerating ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                Generating...
+              </span>
+            ) : (
+              `Generate ${platformLabel(platform)}`
+            )}
+          </button>
+        ) : null}
       </div>
 
       {/* Refine Mode Workspace */}
