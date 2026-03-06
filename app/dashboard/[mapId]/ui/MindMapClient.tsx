@@ -571,6 +571,7 @@ export default function MindMapClient({ mapId }: { mapId: string }) {
 
       const hydratedNodes = data.map.nodes.map((node) => ({
         ...node,
+        type: node.type === "content" ? "social" : node.type,
         position: clampPosition(node.position),
       }));
       const nodeTypeById = new Map(hydratedNodes.map((node) => [node.id, node.type]));
