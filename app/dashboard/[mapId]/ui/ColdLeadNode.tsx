@@ -1,19 +1,30 @@
 'use client';
 
 import type { Node, NodeProps } from '@xyflow/react';
-import SocialNode from './SocialNode';
+import ContentNode from './ContentNode';
+import type { BaseOutputNodeData } from './contentNodeTypes';
 
-type ColdLeadNodeData = {
-  label?: string;
+type ColdLeadNodeData = BaseOutputNodeData & {
   type: 'coldlead';
-  platform?: 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
-  content?: string;
-  contentByPlatform?: Partial<Record<'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM', string>>;
-  messagingLengthByPlatform?: Partial<Record<'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM', 'shortest' | 'shorter' | 'standard' | 'longer' | 'longest' | 'medium' | 'long'>>;
 };
 
 type ColdLeadNodeType = Node<ColdLeadNodeData, 'coldlead'>;
 
 export default function ColdLeadNode(props: NodeProps<ColdLeadNodeType>) {
-  return <SocialNode {...(props as unknown as NodeProps<Node<any, 'coldlead'>>)} variant="coldlead" />;
+  return (
+    <ContentNode
+      {...(props as unknown as NodeProps<Node<any, 'coldlead'>>)}
+      nodeLabel="Prospect Outreach"
+      generationMode="LINKEDIN_DM_LEAD"
+      accent="indigo"
+      settingsScope="coldlead"
+      lockPlatform="LINKEDIN"
+      getContextLabel={() => 'LinkedIn Outreach'}
+      getGenerateActionLabel={() => 'Generate Prospect Outreach'}
+      enableChat
+      enableRefine
+      enableSocialOptions={false}
+      enableMessagingLength
+    />
+  );
 }

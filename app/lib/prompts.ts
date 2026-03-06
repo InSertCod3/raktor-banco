@@ -1,5 +1,6 @@
 // Platform types - stored as strings in database, not as enum
 export type Platform = 'LINKEDIN' | 'FACEBOOK' | 'INSTAGRAM';
+export type GenerationMode = 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
 
 type PromptArgs = {
   platform: Platform;
@@ -349,7 +350,7 @@ export function buildDataSuggestionPrompt(args: {
 
 export function buildSentenceReplacementPrompt(args: {
   platform: Platform;
-  generationMode?: 'SOCIAL_POST' | 'LINKEDIN_DM_LEAD';
+  generationMode?: GenerationMode;
   sentence: string;
   fullPostText: string;
 }): { system: string; user: string } {

@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
   if (!sourceNode) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   const nodeType = (sourceNode.type ?? '').toLowerCase();
-  if (nodeType === 'social' || nodeType === 'suggestion' || nodeType === 'datanode') {
+  if (nodeType === 'social' || nodeType === 'coldlead' || nodeType === 'suggestion' || nodeType === 'datanode') {
     return NextResponse.json({ error: 'Suggestions require an idea, pain point, proof point, or notepad source node.' }, { status: 400 });
   }
 
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
   const contextTexts = connectedNodes
     .filter((node) => {
       const connectedNodeType = (node.type ?? '').toLowerCase();
-      return connectedNodeType !== 'social' && connectedNodeType !== 'suggestion' && connectedNodeType !== 'datanode';
+      return connectedNodeType !== 'social' && connectedNodeType !== 'coldlead' && connectedNodeType !== 'suggestion' && connectedNodeType !== 'datanode';
     })
     .flatMap((node) => collectTextValues(node.data))
     .filter(Boolean);
